@@ -10,8 +10,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
-  val bassBoost: Float = 0.0f,
-  val eq: Map<Float, Float> = EqBands.associateWith { 0.5f }
+  val eq: Map<Float, Float> = EqBands.associateWith { 0.5f },
+  val bassBoost: Float = 0.0f
 ) {
   companion object {
     @Provide val prefModule = DataStoreModule("dsp_prefs") { DspPrefs() }
