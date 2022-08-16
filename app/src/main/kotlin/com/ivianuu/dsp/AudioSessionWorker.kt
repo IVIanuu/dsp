@@ -8,6 +8,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
 import androidx.compose.ui.graphics.toArgb
 import com.github.michaelbull.result.getOrElse
 import com.ivianuu.essentials.AppContext
@@ -132,7 +134,13 @@ private fun audioSessions(
                   AudioSession(sessionId)
                     .also { it.needsResync = true }
                 }
-                  .getOrElse { null }
+                  .getOrElse {
+                    catch {
+                      AudioSession(sessionId)
+                        .also { it.needsResync = true }
+                    }
+                      .getOrElse { null }
+                  }
               }
               if (session != null) {
                 audioSessions[sessionId] = session
@@ -174,7 +182,7 @@ private enum class AudioSessionEvent {
 }
 
 class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
-  private val jamesDSP = try {
+  /*private val jamesDSP = try {
     AudioEffect::class.java.getConstructor(
       UUID::class.java,
       UUID::class.java, Integer.TYPE, Integer.TYPE
@@ -183,7 +191,10 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // todo injekt bug
     log(logger = logger) { "$sessionId couln't create" }
     throw IllegalStateException("Couldn't create effect for $sessionId")
-  }
+  }*/
+
+  val bassBoost = BassBoost(0, sessionId)
+  val equalizer = Equalizer(0, sessionId)
 
   var needsResync = false
 
@@ -196,12 +207,28 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
 
     // enable
     if (needsResync) {
-      jamesDSP.enabled = false
+      bassBoost.enabled = false
+      equalizer.enabled = false
       needsResync = false
       delay(1000)
     }
 
-    jamesDSP.enabled = prefs.dspEnabled
+    bassBoost.enabled = prefs.dspEnabled
+    equalizer.enabled = prefs.dspEnabled
+
+    bassBoost.setStrength((1000 * prefs.bassBoost).toInt().toShort())
+
+    prefs.eq
+      .toList()
+      .sortedBy { it.first }
+      .forEachIndexed { index, pair ->
+        equalizer.setBandLevel(
+          index.toShort(),
+          lerp(-1500, 1500, pair.second).toShort()
+        )
+      }
+
+    /*
 
     // eq switch
     setParameterShort(1202, 1)
@@ -230,7 +257,9 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
 
   fun release() {
     log { "$sessionId -> stop" }
-    jamesDSP.release()
+    //jamesDSP.release()
+    bassBoost.release()
+    equalizer.release()
   }
 
   private fun setParameterShort(parameter: Int, value: Short) {
@@ -247,7 +276,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
         ByteArray::class.java,
         ByteArray::class.java
       )
-      setParameter.invoke(jamesDSP, arguments, result)
+      //setParameter.invoke(jamesDSP, arguments, result)
     } catch (e: Exception) {
       throw RuntimeException(e)
     }
@@ -268,7 +297,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
         ByteArray::class.java,
         ByteArray::class.java
       )
-      setParameter.invoke(jamesDSP, arguments, result)
+      //setParameter.invoke(jamesDSP, arguments, result)
     } catch (e: Exception) {
       throw RuntimeException(e)
     }
