@@ -5,19 +5,13 @@
 package com.ivianuu.dsp
 
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.view.KeyEvent
-import androidx.activity.ComponentActivity
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
-import androidx.compose.ui.Modifier
 import com.ivianuu.essentials.data.DataStore
-import com.ivianuu.essentials.shell.Shell
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.ui.common.VerticalList
-import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
@@ -29,7 +23,6 @@ import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.delay
 
 @Provide object HomeKey : RootKey
 
@@ -74,13 +67,6 @@ import kotlinx.coroutines.delay
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
-
-      item {
-        ListItem(
-          modifier = Modifier.clickable(onClick = restartSpotify),
-          title = { Text("Restart Spotify") }
-        )
-      }
     }
   }
 }
@@ -91,16 +77,10 @@ data class HomeModel(
   val eq: Map<Int, Float>,
   val updateEqBand: (Int, Float) -> Unit,
   val updateBassBoost: (Float) -> Unit,
-  val bassBoost: Float,
-  val restartSpotify: () -> Unit
+  val bassBoost: Float
 )
 
-@Provide fun homeModel(
-  activity: ComponentActivity,
-  packageManager: PackageManager,
-  pref: DataStore<DspPrefs>,
-  shell: Shell
-) = Model {
+@Provide fun homeModel(pref: DataStore<DspPrefs>) = Model {
   val prefs = pref.data.bind(DspPrefs())
 
   HomeModel(
@@ -115,44 +95,7 @@ data class HomeModel(
       }
     },
     bassBoost = prefs.bassBoost,
-    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } },
-    restartSpotify = action {
-      activity.sendOrderedBroadcast(
-        mediaIntentFor(
-          KeyEvent.ACTION_DOWN,
-          KeyEvent.KEYCODE_MEDIA_PAUSE
-        ), null
-      )
-      activity.sendOrderedBroadcast(
-        mediaIntentFor(
-          KeyEvent.ACTION_UP,
-          KeyEvent.KEYCODE_MEDIA_PAUSE
-        ), null
-      )
-
-      delay(2000)
-
-      shell.run("am force-stop com.spotify.music")
-
-      activity.startActivity(
-        packageManager.getLaunchIntentForPackage("com.spotify.music")!!
-      )
-
-      delay(2000)
-
-      activity.startActivity(activity.intent)
-
-      activity.sendOrderedBroadcast(
-        mediaIntentFor(
-          KeyEvent.ACTION_DOWN,
-          KeyEvent.KEYCODE_MEDIA_PLAY
-        ), null
-      )
-      activity.sendOrderedBroadcast(
-        mediaIntentFor(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_MEDIA_PLAY),
-        null
-      )
-    }
+    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } }
   )
 }
 
