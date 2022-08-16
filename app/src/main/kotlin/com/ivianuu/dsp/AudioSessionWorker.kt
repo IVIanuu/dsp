@@ -50,11 +50,6 @@ import java.util.*
   logger: Logger,
   notificationFactory: NotificationFactory
 ) = ScopeWorker<AppScope> {
-  // reset eq pref
-  dspPref.updateData {
-    copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
-  }
-
   par(
     {
       foregroundManager.startForeground(
@@ -191,8 +186,6 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
   }
 
   suspend fun apply(prefs: DspPrefs) {
-    if (!jamesDSP.hasControl()) return
-
     log { "$sessionId apply prefs -> $prefs" }
 
     // enable
@@ -207,16 +200,11 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // eq switch
     setParameterShort(1202, 1)
 
-    val eqGain = 15f
+    val eqGain = 20f
 
     // eq levels
-    val jamesDspEqValues = (if (prefs.customEqBands) CustomEqBands else JamesEqBands)
+    val jamesDspEqValues = JamesEqBands
       .map { jamesEqBand ->
-        if (!prefs.curving) {
-          val jamesEqValue = (prefs.eq[jamesEqBand] ?: 0.5f)
-          return@map jamesEqBand to jamesEqValue to lerp(-eqGain, eqGain, jamesEqValue)
-        }
-
         val lowerAnchorBand = EqBands.lastOrNull { it <= jamesEqBand }
         val upperAnchorBand = EqBands.firstOrNull { it >= jamesEqBand }
 
