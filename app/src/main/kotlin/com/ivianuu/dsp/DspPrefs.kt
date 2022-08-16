@@ -18,24 +18,6 @@ import kotlinx.serialization.Serializable
   }
 }
 
-val JamesEqBands = listOf(
-  25f,
-  40f,
-  60f,
-  100f,
-  160f,
-  250f,
-  400f,
-  630f,
-  1000f,
-  1600f,
-  2500f,
-  4000f,
-  6300f,
-  10000f,
-  16000f
-)
-
 val EqBands = listOf(
   25f,
   40f,
