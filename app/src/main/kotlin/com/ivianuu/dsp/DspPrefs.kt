@@ -11,29 +11,56 @@ import kotlinx.serialization.Serializable
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
   val bassBoost: Float = 0.0f,
-  val eq: Map<Int, Float> = EqBands.associateWith { 0.5f }
+  val eq: Map<Float, Float> = EqBands.associateWith { 0.5f },
+  val curving: Boolean = true,
+  val customEqBands: Boolean = false
 ) {
   companion object {
     @Provide val prefModule = DataStoreModule("dsp_prefs") { DspPrefs() }
   }
 }
 
-val EqBands = listOf(
-  25,
-  40,
-  60,
-  100,
-  160,
-  250,
-  400,
-  630,
-  1000,
-  1600,
-  2500,
-  4000,
-  6300,
-  10000,
-  16000
+val CustomEqBands = listOf(
+  60f,
+  100f,
+  175f,
+  250f,
+  400f,
+  500f,
+  850f,
+  1100f,
+  1500f,
+  2500f,
+  3000f,
+  4000f,
+  6000f,
+  8000f,
+  10000f
 )
 
-val EqBandsToUse = EqBands
+val JamesEqBands = listOf(
+  25f,
+  40f,
+  60f,
+  100f,
+  160f,
+  250f,
+  400f,
+  630f,
+  1000f,
+  1600f,
+  2500f,
+  4000f,
+  6300f,
+  10000f,
+  16000f
+)
+
+val EqBands = listOf(
+  60f,
+  100f,
+  250f,
+  1000f,
+  4000f,
+  10000f
+)

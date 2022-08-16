@@ -41,7 +41,6 @@ import com.ivianuu.injekt.Provide
 
       items(
         eq.toList()
-          .filter { it.first in EqBandsToUse }
           .sortedBy { it.first }
       ) { (band, value) ->
         SliderListItem(
@@ -66,6 +65,22 @@ import com.ivianuu.injekt.Provide
           valueText = { ScaledPercentageUnitText(it) }
         )
       }
+
+      item {
+        SwitchListItem(
+          value = curving,
+          onValueChange = updateCurving,
+          title = { Text("Curving") }
+        )
+      }
+
+      item {
+        SwitchListItem(
+          value = customEqBands,
+          onValueChange = updateCustomEqBands,
+          title = { Text("Custom eq bands") }
+        )
+      }
     }
   }
 }
@@ -73,10 +88,14 @@ import com.ivianuu.injekt.Provide
 data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
-  val eq: Map<Int, Float>,
-  val updateEqBand: (Int, Float) -> Unit,
+  val eq: Map<Float, Float>,
+  val updateEqBand: (Float, Float) -> Unit,
   val updateBassBoost: (Float) -> Unit,
-  val bassBoost: Float
+  val bassBoost: Float,
+  val curving: Boolean,
+  val updateCurving: (Boolean) -> Unit,
+  val customEqBands: Boolean,
+  val updateCustomEqBands: (Boolean) -> Unit
 )
 
 @Provide fun homeModel(pref: DataStore<DspPrefs>) = Model {
@@ -94,7 +113,10 @@ data class HomeModel(
       }
     },
     bassBoost = prefs.bassBoost,
-    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } }
+    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } },
+    curving = prefs.curving,
+    updateCurving = action { value -> pref.updateData { copy(curving = value) } },
+    customEqBands = prefs.customEqBands,
+    updateCustomEqBands = action { value -> pref.updateData { copy(customEqBands = value) } }
   )
 }
-

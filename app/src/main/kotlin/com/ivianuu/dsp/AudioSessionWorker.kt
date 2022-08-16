@@ -52,12 +52,7 @@ import java.util.*
 ) = ScopeWorker<AppScope> {
   // reset eq pref
   dspPref.updateData {
-    copy(
-      eq = EqBands
-        .associateWith { band ->
-          if (band in EqBandsToUse) eq[band] ?: 0.5f else 0.5f
-        }
-    )
+    copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
   }
 
   par(
@@ -196,6 +191,8 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
   }
 
   suspend fun apply(prefs: DspPrefs) {
+    if (!jamesDSP.hasControl()) return
+
     log { "$sessionId apply prefs -> $prefs" }
 
     // enable
@@ -210,15 +207,38 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // eq switch
     setParameterShort(1202, 1)
 
-    // eq levels
-    val sortedEq = prefs.eq
-      .toList()
-      .sortedBy { it.first }
-
     val eqGain = 15f
 
-    val eqLevels = (sortedEq.map { it.first.toFloat() } +
-        sortedEq.map { (_, value) -> lerp(-eqGain, eqGain, value) }).toFloatArray()
+    // eq levels
+    val jamesDspEqValues = (if (prefs.customEqBands) CustomEqBands else JamesEqBands)
+      .map { jamesEqBand ->
+        if (!prefs.curving) {
+          val jamesEqValue = (prefs.eq[jamesEqBand] ?: 0.5f)
+          return@map jamesEqBand to jamesEqValue to lerp(-eqGain, eqGain, jamesEqValue)
+        }
+
+        val lowerAnchorBand = EqBands.lastOrNull { it <= jamesEqBand }
+        val upperAnchorBand = EqBands.firstOrNull { it >= jamesEqBand }
+
+        val lowerAnchorValue = prefs.eq[lowerAnchorBand] ?: 0.5f
+        val upperAnchorValue = prefs.eq[upperAnchorBand] ?: 0.5f
+
+        val jamesBandFraction = calcFraction(
+          lowerAnchorBand ?: jamesEqBand,
+          upperAnchorBand ?: jamesEqBand,
+          jamesEqBand
+        )
+
+        val jamesEqValue = lerp(lowerAnchorValue, upperAnchorValue, jamesBandFraction)
+
+        jamesEqBand to jamesEqValue to lerp(-eqGain, eqGain, jamesEqValue)
+      }
+      .sortedBy { it.first.first }
+
+    log { "james eq $jamesDspEqValues" }
+
+    val eqLevels = (jamesDspEqValues.map { it.first.first } +
+        jamesDspEqValues.map { (_, value) -> value }).toFloatArray()
 
     val filtertype = -1f
     val interpolationMode = -1f
@@ -304,3 +324,6 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     private val EFFECT_TYPE_JAMES_DSP = UUID.fromString("f27317f4-c984-4de6-9a90-545759495bf2")
   }
 }
+
+private fun calcFraction(a: Float, b: Float, pos: Float) =
+  (if (b - a == 0f) 0f else (pos - a) / (b - a)).coerceIn(0f, 1f)
