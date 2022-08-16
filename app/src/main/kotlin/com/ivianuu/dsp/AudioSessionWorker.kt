@@ -50,12 +50,12 @@ import java.util.*
   logger: Logger,
   notificationFactory: NotificationFactory
 ) = ScopeWorker<AppScope> {
-  // reset eq bands which are not tweakable in the app
+  // reset eq pref
   dspPref.updateData {
     copy(
-      eq = eq
-        .mapValues {
-          if (it.key in EqBandsToUse) it.value else 0.5f
+      eq = EqBands
+        .associateWith { band ->
+          if (band in EqBandsToUse) eq[band] ?: 0.5f else 0.5f
         }
     )
   }
