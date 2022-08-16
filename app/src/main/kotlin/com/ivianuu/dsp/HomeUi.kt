@@ -74,8 +74,8 @@ data class HomeModel(
   val updateDspEnabled: (Boolean) -> Unit,
   val eq: Map<Float, Float>,
   val updateEqBand: (Float, Float) -> Unit,
-  val updateBassBoost: (Float) -> Unit,
-  val bassBoost: Float
+  val bassBoost: Float,
+  val updateBassBoost: (Float) -> Unit
 )
 
 @Provide fun homeModel(pref: DataStore<DspPrefs>) = Model {
