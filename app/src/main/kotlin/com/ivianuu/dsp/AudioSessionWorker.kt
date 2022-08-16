@@ -206,7 +206,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // eq switch
     setParameterShort(1202, 1)
 
-    val eqGain = 20f
+    val eqGain = 12f
 
     // eq levels
     val sortedEq = prefs.eq
