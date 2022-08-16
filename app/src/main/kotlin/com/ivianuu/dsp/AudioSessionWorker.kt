@@ -18,6 +18,7 @@ import com.ivianuu.essentials.coroutines.par
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.foreground.startForeground
+import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.util.BroadcastsFactory
@@ -128,7 +129,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
       UUID::class.java, Integer.TYPE, Integer.TYPE
     ).newInstance(EFFECT_TYPE_CUSTOM, EFFECT_TYPE_JAMES_DSP, 0, sessionId)
   } catch (e: Throwable) {
-    throw IllegalStateException("Couldn't effect for $sessionId")
+    throw IllegalStateException("Couldn't create effect for $sessionId")
   }
 
   init {
@@ -149,13 +150,11 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
       .toList()
       .sortedBy { it.first }
 
+    val eqGain = 15f
+
     val eqLevels = (sortedEq.map { it.first.toFloat() } +
         sortedEq.map { (_, value) ->
-          when {
-            value == 0.5f -> 0.0f
-            value < 0.5f -> -(12f * value)
-            else -> 12f * value
-          }
+          eqGain * lerp(-1f, 1f, value)
         }).toFloatArray()
 
     val filtertype = -1f
@@ -164,9 +163,9 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     val ftype = floatArrayOf(filtertype, interpolationMode)
     val sendAry = mergeFloatArray(ftype, eqLevels)
 
-    setParameterFloatArray(116, sendAry)
+    log { "eq levels ${eqLevels.contentToString()}" }
 
-    log { "send array ${sendAry.contentToString()} eq ${eqLevels.contentToString()}" }
+    setParameterFloatArray(116, sendAry)
 
     // bass boost switch
     setParameterShort(
