@@ -4,8 +4,6 @@
 
 package com.ivianuu.dsp
 
-import android.content.Intent
-import android.view.KeyEvent
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
 import com.ivianuu.essentials.data.DataStore
@@ -100,14 +98,3 @@ data class HomeModel(
   )
 }
 
-private fun mediaIntentFor(
-  keyEvent: Int,
-  keycode: Int
-): Intent = Intent(Intent.ACTION_MEDIA_BUTTON).apply {
-  putExtra(
-    Intent.EXTRA_KEY_EVENT,
-    KeyEvent(keyEvent, keycode)
-  )
-
-  `package` = "com.spotify.music"
-}
