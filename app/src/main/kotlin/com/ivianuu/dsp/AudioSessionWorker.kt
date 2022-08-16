@@ -70,7 +70,7 @@ import java.util.*
           NotificationManager.IMPORTANCE_LOW
         ) {
           setContentTitle("DSP")
-          setSmallIcon(R.drawable.es_ic_done)
+          setSmallIcon(R.drawable.ic_graphic_eq)
           setContentIntent(
             PendingIntent.getActivity(
               context,
