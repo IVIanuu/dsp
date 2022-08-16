@@ -215,7 +215,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
       .toList()
       .sortedBy { it.first }
 
-    val eqGain = 10f
+    val eqGain = 15f
 
     val eqLevels = (sortedEq.map { it.first.toFloat() } +
         sortedEq.map { (_, value) -> lerp(-eqGain, eqGain, value) }).toFloatArray()
