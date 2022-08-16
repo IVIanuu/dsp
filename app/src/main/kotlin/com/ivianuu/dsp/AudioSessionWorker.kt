@@ -50,6 +50,16 @@ import java.util.*
   logger: Logger,
   notificationFactory: NotificationFactory
 ) = ScopeWorker<AppScope> {
+  // reset eq bands which are not tweakable in the app
+  dspPref.updateData {
+    copy(
+      eq = eq
+        .mapValues {
+          if (it.key in EqBandsToUse) it.value else 0.5f
+        }
+    )
+  }
+
   par(
     {
       foregroundManager.startForeground(
@@ -208,9 +218,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     val eqGain = 10f
 
     val eqLevels = (sortedEq.map { it.first.toFloat() } +
-        sortedEq.map { (_, value) ->
-          eqGain * lerp(-1f, 1f, value)
-        }).toFloatArray()
+        sortedEq.map { (_, value) -> lerp(-eqGain, eqGain, value) }).toFloatArray()
 
     val filtertype = -1f
     val interpolationMode = -1f

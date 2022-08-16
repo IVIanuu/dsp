@@ -35,3 +35,5 @@ val EqBands = listOf(
   10000,
   16000
 )
+
+val EqBandsToUse = EqBands

@@ -43,6 +43,7 @@ import com.ivianuu.injekt.Provide
 
       items(
         eq.toList()
+          .filter { it.first in EqBandsToUse }
           .sortedBy { it.first }
       ) { (band, value) ->
         SliderListItem(
