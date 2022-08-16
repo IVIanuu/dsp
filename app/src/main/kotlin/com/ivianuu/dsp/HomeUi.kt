@@ -4,6 +4,7 @@
 
 package com.ivianuu.dsp
 
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.Text
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.state.action
@@ -38,7 +39,18 @@ import com.ivianuu.injekt.Provide
         Subheader { Text("EQ") }
       }
 
-
+      items(
+        eq.toList()
+          .sortedBy { it.first }
+      ) { (band, value) ->
+        SliderListItem(
+          value = value,
+          onValueChange = { updateEqBand(band, it) },
+          title = { Text(band.toString()) },
+          stepPolicy = incrementingStepPolicy(0.05f),
+          valueText = { ScaledPercentageUnitText(it) }
+        )
+      }
 
       item {
         Subheader { Text("Other") }
@@ -60,8 +72,10 @@ import com.ivianuu.injekt.Provide
 data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
-  val bassBoost: Float,
-  val updateBassBoost: (Float) -> Unit
+  val eq: Map<Int, Float>,
+  val updateEqBand: (Int, Float) -> Unit,
+  val updateBassBoost: (Float) -> Unit,
+  val bassBoost: Float
 )
 
 @Provide fun homeModel(pref: DataStore<DspPrefs>) = Model {
@@ -70,6 +84,14 @@ data class HomeModel(
   HomeModel(
     dspEnabled = prefs.dspEnabled,
     updateDspEnabled = action { value -> pref.updateData { copy(dspEnabled = value) } },
+    eq = prefs.eq,
+    updateEqBand = action { band, value ->
+      pref.updateData {
+        copy(eq = eq.toMutableMap().apply {
+          put(band, value)
+        })
+      }
+    },
     bassBoost = prefs.bassBoost,
     updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } }
   )

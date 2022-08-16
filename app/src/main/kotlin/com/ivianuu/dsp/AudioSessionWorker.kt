@@ -22,11 +22,10 @@ import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onStart
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 
 @Provide fun musicSessionWorker(
@@ -135,7 +134,35 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
   fun apply(prefs: DspPrefs) {
     log { "$sessionId apply prefs -> $prefs" }
 
+    // enable
     jamesDSP.enabled = prefs.dspEnabled
+
+    // eq switch
+    setParameterShort(1202, 1)
+
+    // eq levels
+    val sortedEq = prefs.eq
+      .toList()
+      .sortedBy { it.first }
+
+    val eqLevels = (sortedEq.map { it.first.toFloat() } +
+        sortedEq.map { (_, value) ->
+          when {
+            value == 0.5f -> 0.0f
+            value < 0.5f -> -(12f * value)
+            else -> 12f * value
+          }
+        }).toFloatArray()
+
+    val filtertype = -1f
+    val interpolationMode = -1f
+
+    val ftype = floatArrayOf(filtertype, interpolationMode)
+    val sendAry = mergeFloatArray(ftype, eqLevels)
+
+    setParameterFloatArray(116, sendAry)
+
+    log { "send array ${sendAry.contentToString()} eq ${eqLevels.contentToString()}" }
 
     // bass boost switch
     setParameterShort(
@@ -170,6 +197,40 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     } catch (e: Exception) {
       throw RuntimeException(e)
     }
+  }
+
+  private fun setParameterFloatArray(parameter: Int, value: FloatArray) {
+    try {
+      val arguments = byteArrayOf(
+        parameter.toByte(), (parameter shr 8).toByte(),
+        (parameter shr 16).toByte(), (parameter shr 24).toByte()
+      )
+      val result = ByteArray(value.size * 4)
+      val byteDataBuffer = ByteBuffer.wrap(result)
+      byteDataBuffer.order(ByteOrder.nativeOrder())
+      for (i in value.indices) byteDataBuffer.putFloat(value[i])
+      val setParameter = AudioEffect::class.java.getMethod(
+        "setParameter",
+        ByteArray::class.java,
+        ByteArray::class.java
+      )
+      setParameter.invoke(jamesDSP, arguments, result)
+    } catch (e: Exception) {
+      throw RuntimeException(e)
+    }
+  }
+
+  private fun mergeFloatArray(vararg arrays: FloatArray): FloatArray {
+    var size = 0
+    for (a: FloatArray in arrays) size += a.size
+    val res = FloatArray(size)
+    var destPos = 0
+    for (i in arrays.indices) {
+      if (i > 0) destPos += arrays[i - 1].size
+      val length = arrays[i].size
+      System.arraycopy(arrays[i], 0, res, destPos, length)
+    }
+    return res
   }
 
   companion object {
