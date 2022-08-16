@@ -1,0 +1,33 @@
+<!--
+  ~ Copyright 2022 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
+  -->
+
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:pathData="M75.08,52.43A12.13,12.13 0,0 0,66.5 37.57"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeColor="#fff" />
+    <path
+        android:pathData="M82.25,52.85A16.94,16.94 0,0 0,71 31.68"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeColor="#fff" />
+    <path
+        android:pathData="M33.92,56.57A12.13,12.13 0,0 0,42.5 71.43"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeColor="#fff" />
+    <path
+        android:pathData="M26.67,56.79A16.94,16.94 0,0 0,37.92 78"
+        android:strokeWidth="4"
+        android:fillColor="#00000000"
+        android:strokeColor="#fff" />
+    <path
+        android:pathData="M67.32,45 L51.94,38.94a2,2 0,0 0,-2.59 1.13L40.55,62.4A2,2 0,0 0,41.68 65l15.38,6.06a2,2 0,0 0,2.59 -1.13l8.8,-22.33A2,2 0,0 0,67.32 45ZM57.07,66.22 L45,61.46l7,-17.68L64,48.54Z"
+        android:fillColor="#fff" />
+</vector>
