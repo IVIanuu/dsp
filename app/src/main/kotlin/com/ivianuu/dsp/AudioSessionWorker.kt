@@ -32,6 +32,7 @@ import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
@@ -50,6 +51,11 @@ import java.util.*
   logger: Logger,
   notificationFactory: NotificationFactory
 ) = ScopeWorker<AppScope> {
+  // reset eq pref
+  dspPref.updateData {
+    copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
+  }
+
   par(
     {
       foregroundManager.startForeground(
@@ -75,7 +81,7 @@ import java.util.*
     },
     {
       combine(dspPref.data, audioSessions()) { a, b -> a to b }
-        .collect { (prefs, audioSessions) ->
+        .collectLatest { (prefs, audioSessions) ->
           audioSessions.values.parForEach { audioSession ->
             audioSession.apply(prefs)
           }
@@ -203,30 +209,12 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     val eqGain = 20f
 
     // eq levels
-    val jamesDspEqValues = JamesEqBands
-      .map { jamesEqBand ->
-        val lowerAnchorBand = EqBands.lastOrNull { it <= jamesEqBand }
-        val upperAnchorBand = EqBands.firstOrNull { it >= jamesEqBand }
+    val sortedEq = prefs.eq
+      .toList()
+      .sortedBy { it.first }
 
-        val lowerAnchorValue = prefs.eq[lowerAnchorBand] ?: 0.5f
-        val upperAnchorValue = prefs.eq[upperAnchorBand] ?: 0.5f
-
-        val jamesBandFraction = calcFraction(
-          lowerAnchorBand ?: jamesEqBand,
-          upperAnchorBand ?: jamesEqBand,
-          jamesEqBand
-        )
-
-        val jamesEqValue = lerp(lowerAnchorValue, upperAnchorValue, jamesBandFraction)
-
-        jamesEqBand to jamesEqValue to lerp(-eqGain, eqGain, jamesEqValue)
-      }
-      .sortedBy { it.first.first }
-
-    log { "james eq $jamesDspEqValues" }
-
-    val eqLevels = (jamesDspEqValues.map { it.first.first } +
-        jamesDspEqValues.map { (_, value) -> value }).toFloatArray()
+    val eqLevels = (sortedEq.map { it.first } +
+        sortedEq.map { (_, value) -> lerp(-eqGain, eqGain, value) }).toFloatArray()
 
     val filtertype = -1f
     val interpolationMode = -1f
@@ -312,6 +300,3 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     private val EFFECT_TYPE_JAMES_DSP = UUID.fromString("f27317f4-c984-4de6-9a90-545759495bf2")
   }
 }
-
-private fun calcFraction(a: Float, b: Float, pos: Float) =
-  (if (b - a == 0f) 0f else (pos - a) / (b - a)).coerceIn(0f, 1f)
