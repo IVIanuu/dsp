@@ -31,11 +31,9 @@ import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.ui.common.HorizontalList
-import com.ivianuu.essentials.ui.common.VerticalList
-import com.ivianuu.essentials.ui.material.Scaffold
+import com.ivianuu.essentials.ui.common.SimpleListScreen
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
-import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
@@ -49,39 +47,37 @@ import kotlin.math.absoluteValue
 @Provide object HomeKey : RootKey
 
 @Provide val homeUi = ModelKeyUi<HomeKey, HomeModel> {
-  Scaffold(topBar = { TopAppBar(title = { Text("DSP") }) }) {
-    VerticalList {
-      item {
-        SwitchListItem(
-          value = dspEnabled,
-          onValueChange = updateDspEnabled,
-          title = { Text("DSP Enabled") }
-        )
-      }
+  SimpleListScreen("DSP") {
+    item {
+      SwitchListItem(
+        value = dspEnabled,
+        onValueChange = updateDspEnabled,
+        title = { Text("DSP Enabled") }
+      )
+    }
 
-      item {
-        Subheader { Text("Equalizer") }
-      }
+    item {
+      Subheader { Text("Equalizer") }
+    }
 
-      item {
-        Equalizer(eq = eq.toList()
-          .sortedBy { it.first }
-          .toMap(), onBandChange = updateEqBand)
-      }
+    item {
+      Equalizer(eq = eq.toList()
+        .sortedBy { it.first }
+        .toMap(), onBandChange = updateEqBand)
+    }
 
-      item {
-        Subheader { Text("Other") }
-      }
+    item {
+      Subheader { Text("Other") }
+    }
 
-      item {
-        SliderListItem(
-          value = bassBoost,
-          onValueChange = updateBassBoost,
-          title = { Text("Bass boost") },
-          stepPolicy = incrementingStepPolicy(0.05f),
-          valueText = { ScaledPercentageUnitText(it) }
-        )
-      }
+    item {
+      SliderListItem(
+        value = bassBoost,
+        onValueChange = updateBassBoost,
+        title = { Text("Bass boost") },
+        stepPolicy = incrementingStepPolicy(0.05f),
+        valueText = { ScaledPercentageUnitText(it) }
+      )
     }
   }
 }
