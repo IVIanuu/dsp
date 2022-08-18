@@ -206,15 +206,13 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // eq switch
     setParameterShort(1202, 1)
 
-    val eqGain = 12f
-
     // eq levels
     val sortedEq = prefs.eq
       .toList()
       .sortedBy { it.first }
 
     val eqLevels = (sortedEq.map { it.first } +
-        sortedEq.map { (_, value) -> lerp(-eqGain, eqGain, value) }).toFloatArray()
+        sortedEq.map { (_, value) -> lerp(-EQ_DB, EQ_DB, value) }).toFloatArray()
 
     val filtertype = -1f
     val interpolationMode = -1f

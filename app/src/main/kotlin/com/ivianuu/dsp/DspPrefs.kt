@@ -18,6 +18,8 @@ import kotlinx.serialization.Serializable
   }
 }
 
+const val EQ_DB = 12f
+
 val EqBands = listOf(
   25f,
   40f,

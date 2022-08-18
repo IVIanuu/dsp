@@ -12,11 +12,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +26,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.data.DataStore
+import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.ui.common.HorizontalList
@@ -120,7 +119,18 @@ import kotlin.math.absoluteValue
 
           Spacer(Modifier.height(8.dp))
 
-          var internalValue by remember(value) { mutableStateOf(value) }
+          val valueRange = -EQ_DB..EQ_DB
+          val stepPolicy = incrementingStepPolicy(1f)
+
+          var internalValue by remember(value) {
+            mutableStateOf(
+              lerp(
+                valueRange.start,
+                valueRange.endInclusive,
+                value
+              )
+            )
+          }
 
           Layout(
             modifier = Modifier
@@ -131,9 +141,19 @@ import kotlin.math.absoluteValue
                 modifier = Modifier
                   .rotate(-90f),
                 value = internalValue,
+                valueRange = valueRange,
                 onValueChange = { internalValue = it },
-                onValueChangeFinished = { onBandChange(band, internalValue) },
-                stepPolicy = incrementingStepPolicy(0.05f)
+                onValueChangeFinished = {
+                  onBandChange(
+                    band,
+                    lerp(
+                      0f,
+                      1f,
+                      calcFraction(valueRange.start, valueRange.endInclusive, internalValue)
+                    )
+                  )
+                },
+                stepPolicy = stepPolicy
               )
             }
           ) { measurables, constraints ->
@@ -150,30 +170,31 @@ import kotlin.math.absoluteValue
 
           Spacer(Modifier.height(8.dp))
 
-          CompositionLocalProvider(
-            LocalTextStyle provides MaterialTheme.typography.caption
-          ) {
-            val valueRange = 0f..1f
-            val steps = incrementingStepPolicy(0.05f)(valueRange)
-            val stepFractions = (if (steps == 0) emptyList()
-            else List(steps + 2) { it.toFloat() / (steps + 1) })
-            val stepValues = stepFractions
-              .map {
-                valueRange.start +
-                    ((valueRange.endInclusive - valueRange.start) * it)
-              }
+          val steps = stepPolicy(valueRange)
+          val stepFractions = (if (steps == 0) emptyList()
+          else List(steps + 2) { it.toFloat() / (steps + 1) })
+          val stepValues = stepFractions
+            .map {
+              valueRange.start +
+                  ((valueRange.endInclusive - valueRange.start) * it)
+            }
 
-            val steppedValue = stepValues
-              .minByOrNull { (it - internalValue).absoluteValue }
-              ?: internalValue
+          val steppedValue = stepValues
+            .minByOrNull { (it - internalValue).absoluteValue }
+            ?: internalValue
 
-            ScaledPercentageUnitText(steppedValue)
-          }
+          Text(
+            text = "${steppedValue.toInt()}db",
+            style = MaterialTheme.typography.caption
+          )
         }
       }
     }
   }
 }
+
+private fun calcFraction(a: Float, b: Float, pos: Float) =
+  (if (b - a == 0f) 0f else (pos - a) / (b - a)).coerceIn(0f, 1f)
 
 data class HomeModel(
   val dspEnabled: Boolean,
