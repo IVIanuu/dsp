@@ -19,6 +19,7 @@ import kotlinx.serialization.Serializable
 }
 
 const val EQ_DB = 12f
+const val BASS_BOOST_DB = 15f
 
 val EqBands = listOf(
   25f,

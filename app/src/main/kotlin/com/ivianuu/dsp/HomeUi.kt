@@ -37,7 +37,6 @@ import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
 import com.ivianuu.essentials.ui.navigation.RootKey
-import com.ivianuu.essentials.ui.prefs.ScaledPercentageUnitText
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
@@ -70,12 +69,18 @@ import kotlin.math.absoluteValue
     }
 
     item {
+      val valueRange = 0f..BASS_BOOST_DB
       SliderListItem(
-        value = bassBoost,
-        onValueChange = updateBassBoost,
+        value = lerp(valueRange.start, valueRange.endInclusive, bassBoost),
+        onValueChange = {
+          updateBassBoost(
+            calcFraction(valueRange.start, valueRange.endInclusive, it)
+          )
+        },
+        valueRange = valueRange,
         title = { Text("Bass boost") },
-        stepPolicy = incrementingStepPolicy(0.05f),
-        valueText = { ScaledPercentageUnitText(it) }
+        stepPolicy = incrementingStepPolicy(1f),
+        valueText = { Text("${it.toInt()}db") }
       )
     }
   }
@@ -146,11 +151,7 @@ import kotlin.math.absoluteValue
                 onValueChangeFinished = {
                   onBandChange(
                     band,
-                    lerp(
-                      0f,
-                      1f,
-                      calcFraction(valueRange.start, valueRange.endInclusive, internalValue)
-                    )
+                    calcFraction(valueRange.start, valueRange.endInclusive, internalValue)
                   )
                 },
                 stepPolicy = stepPolicy

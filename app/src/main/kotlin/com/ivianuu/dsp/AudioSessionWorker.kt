@@ -231,7 +231,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     )
 
     // bass boost gain
-    setParameterShort(112, (15 * prefs.bassBoost).toInt().toShort())
+    setParameterShort(112, (BASS_BOOST_DB * prefs.bassBoost).toInt().toShort())
   }
 
   fun release() {
