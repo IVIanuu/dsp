@@ -83,6 +83,22 @@ import kotlin.math.absoluteValue
         valueText = { Text("${it.toInt()}db") }
       )
     }
+
+    item {
+      val valueRange = 0f..POST_GAIN_DB
+      SliderListItem(
+        value = lerp(valueRange.start, valueRange.endInclusive, postGain),
+        onValueChange = {
+          updatePostGain(
+            calcFraction(valueRange.start, valueRange.endInclusive, it)
+          )
+        },
+        valueRange = valueRange,
+        title = { Text("Post gain") },
+        stepPolicy = incrementingStepPolicy(1f),
+        valueText = { Text("${it.toInt()}db") }
+      )
+    }
   }
 }
 
@@ -203,7 +219,9 @@ data class HomeModel(
   val eq: Map<Float, Float>,
   val updateEqBand: (Float, Float) -> Unit,
   val bassBoost: Float,
-  val updateBassBoost: (Float) -> Unit
+  val updateBassBoost: (Float) -> Unit,
+  val postGain: Float,
+  val updatePostGain: (Float) -> Unit
 )
 
 @Provide fun homeModel(pref: DataStore<DspPrefs>) = Model {
@@ -221,6 +239,8 @@ data class HomeModel(
       }
     },
     bassBoost = prefs.bassBoost,
-    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } }
+    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } },
+    postGain = prefs.postGain,
+    updatePostGain = action { value -> pref.updateData { copy(postGain = value) } }
   )
 }
