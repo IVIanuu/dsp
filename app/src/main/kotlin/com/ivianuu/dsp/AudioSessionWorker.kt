@@ -214,15 +214,9 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     val eqLevels = (sortedEq.map { it.first } +
         sortedEq.map { (_, value) -> lerp(-EQ_DB, EQ_DB, value) }).toFloatArray()
 
-    val filtertype = -1f
-    val interpolationMode = -1f
-
-    val ftype = floatArrayOf(filtertype, interpolationMode)
-    val sendAry = mergeFloatArray(ftype, eqLevels)
-
     log { "eq levels ${eqLevels.contentToString()}" }
 
-    setParameterFloatArray(116, sendAry)
+    setParameterFloatArray(116, floatArrayOf(-1f, -1f) + eqLevels)
 
     // bass boost switch
     setParameterShort(
@@ -278,19 +272,6 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     } catch (e: Exception) {
       throw RuntimeException(e)
     }
-  }
-
-  private fun mergeFloatArray(vararg arrays: FloatArray): FloatArray {
-    var size = 0
-    for (a: FloatArray in arrays) size += a.size
-    val res = FloatArray(size)
-    var destPos = 0
-    for (i in arrays.indices) {
-      if (i > 0) destPos += arrays[i - 1].size
-      val length = arrays[i].size
-      System.arraycopy(arrays[i], 0, res, destPos, length)
-    }
-    return res
   }
 
   companion object {
