@@ -4,7 +4,12 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/dsp.iml" filepath="$PROJECT_DIR$/.idea/modules/dsp.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/dsp.app.iml" filepath="$PROJECT_DIR$/.idea/modules/app/dsp.app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/dsp.app.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/dsp.app.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/dsp.app.main.iml" filepath="$PROJECT_DIR$/.idea/modules/app/dsp.app.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/app/dsp.app.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/app/dsp.app.unitTest.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/dsp.buildSrc.iml" filepath="$PROJECT_DIR$/.idea/modules/dsp.buildSrc.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/dsp.buildSrc.main.iml" filepath="$PROJECT_DIR$/.idea/modules/dsp.buildSrc.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/dsp.buildSrc.test.iml" filepath="$PROJECT_DIR$/.idea/modules/dsp.buildSrc.test.iml" />
     </modules>
   </component>
 </project>
