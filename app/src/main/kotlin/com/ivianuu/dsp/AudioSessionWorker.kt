@@ -221,8 +221,6 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
             .toShort()
         )
       }
-
-    log { "sessionId ${bassBoost.roundedStrength}" }
   }
 
   fun release() {
