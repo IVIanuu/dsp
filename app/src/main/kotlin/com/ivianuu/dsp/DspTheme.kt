@@ -10,7 +10,7 @@ import com.ivianuu.essentials.rubik.Rubik
 import com.ivianuu.essentials.ui.AppTheme
 import com.ivianuu.essentials.ui.material.EsTheme
 import com.ivianuu.essentials.ui.material.EsTypography
-import com.ivianuu.essentials.ui.material.colors
+import com.ivianuu.essentials.ui.material.LightAndDarkColors
 import com.ivianuu.essentials.ui.material.editEach
 import com.ivianuu.injekt.Provide
 
@@ -21,19 +21,9 @@ object DspTheme {
 
 @Provide fun dspTheme(resourceProvider: ResourceProvider) = AppTheme { content ->
   EsTheme(
-    lightColors = colors(
-      isLight = true,
+    colors = LightAndDarkColors(
       primary = DspTheme.Primary,
-      primaryVariant = DspTheme.Primary,
-      secondary = DspTheme.Secondary,
-      secondaryVariant = DspTheme.Secondary
-    ),
-    darkColors = colors(
-      isLight = false,
-      primary = DspTheme.Primary,
-      primaryVariant = DspTheme.Primary,
-      secondary = DspTheme.Secondary,
-      secondaryVariant = DspTheme.Secondary
+      secondary = DspTheme.Secondary
     ),
     typography = EsTypography.editEach { copy(fontFamily = Rubik) },
     content = content
