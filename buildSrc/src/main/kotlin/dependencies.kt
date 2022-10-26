@@ -6,7 +6,7 @@
 
 object Build {
   const val applicationId = "com.ivianuu.dsp"
-  const val compileSdk = 31
+  const val compileSdk = 32
   const val minSdk = 31
   const val targetSdk = 30
   const val versionCode = 1
@@ -15,7 +15,7 @@ object Build {
 
 object Deps {
   object Essentials {
-    private const val version = "0.0.1-dev1117"
+    private const val version = "0.0.1-dev1121"
     const val android = "com.ivianuu.essentials:essentials-android:$version"
     const val boot = "com.ivianuu.essentials:essentials-boot:$version"
     const val foreground = "com.ivianuu.essentials:essentials-foreground:$version"
