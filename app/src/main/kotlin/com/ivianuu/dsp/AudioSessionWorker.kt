@@ -16,11 +16,9 @@ import com.ivianuu.essentials.app.EsActivity
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.coroutines.guarantee
-import com.ivianuu.essentials.coroutines.par
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
-import com.ivianuu.essentials.foreground.startForeground
 import com.ivianuu.essentials.getOrElse
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
@@ -56,38 +54,32 @@ import java.util.*
     copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
   }
 
-  par(
-    {
-      foregroundManager.startForeground(
-        1,
-        notificationFactory.build(
-          "foreground",
-          "Foreground",
-          NotificationManager.IMPORTANCE_LOW
-        ) {
-          setContentTitle("DSP")
-          setSmallIcon(R.drawable.ic_graphic_eq)
-          setContentIntent(
-            PendingIntent.getActivity(
-              context,
-              1,
-              Intent(context, EsActivity::class.java),
-              PendingIntent.FLAG_UPDATE_CURRENT
-            )
-          )
-          color = DspTheme.Primary.toArgb()
-        }
+  foregroundManager.runInForeground(
+    notificationFactory.build(
+      "foreground",
+      "Foreground",
+      NotificationManager.IMPORTANCE_LOW
+    ) {
+      setContentTitle("DSP")
+      setSmallIcon(R.drawable.ic_graphic_eq)
+      setContentIntent(
+        PendingIntent.getActivity(
+          context,
+          1,
+          Intent(context, EsActivity::class.java),
+          PendingIntent.FLAG_UPDATE_CURRENT
+        )
       )
-    },
-    {
-      combine(dspPref.data, audioSessions()) { a, b -> a to b }
-        .collectLatest { (prefs, audioSessions) ->
-          audioSessions.values.parForEach { audioSession ->
-            audioSession.apply(prefs)
-          }
-        }
+      color = DspTheme.Primary.toArgb()
     }
-  )
+  ) {
+    combine(dspPref.data, audioSessions()) { a, b -> a to b }
+      .collectLatest { (prefs, audioSessions) ->
+        audioSessions.values.parForEach { audioSession ->
+          audioSession.apply(prefs)
+        }
+      }
+  }
 }
 
 @Serializable data class AudioSessionPrefs(
