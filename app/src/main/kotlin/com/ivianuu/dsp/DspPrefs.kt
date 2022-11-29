@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
   val currentConfig: Config = Config(),
-  val configs: Map<String, Config> = emptyMap()
+  val configs: Map<String, Config> = mapOf("default" to Config())
 ) {
   companion object {
     @Provide val prefModule = PrefModule { DspPrefs() }
