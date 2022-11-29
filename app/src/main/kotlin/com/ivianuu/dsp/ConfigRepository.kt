@@ -35,7 +35,7 @@ import kotlinx.coroutines.flow.map
     pref.updateData {
       copy(
         configs = configs
-          .filterKeys { it == id }
+          .filterKeys { it != id }
       )
     }
   }
