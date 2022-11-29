@@ -4,19 +4,24 @@
 
 package com.ivianuu.dsp
 
-import com.ivianuu.essentials.android.prefs.DataStoreModule
+import com.ivianuu.essentials.android.prefs.PrefModule
 import com.ivianuu.injekt.Provide
 import kotlinx.serialization.Serializable
 
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
-  val eq: Map<Float, Float> = EqBands.associateWith { 0.5f },
-  val bassBoost: Float = 0.0f
+  val currentConfig: Config = Config(),
+  val configs: Map<String, Config> = emptyMap()
 ) {
   companion object {
-    @Provide val prefModule = DataStoreModule("dsp_prefs") { DspPrefs() }
+    @Provide val prefModule = PrefModule { DspPrefs() }
   }
 }
+
+@Serializable data class Config(
+  val eq: Map<Float, Float> = EqBands.associateWith { 0.5f },
+  val bassBoost: Float = 0.0f
+)
 
 const val EQ_DB = 12f
 const val BASS_BOOST_DB = 15f

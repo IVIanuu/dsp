@@ -7,9 +7,9 @@ buildscript {
     mavenLocal()
     google()
     mavenCentral()
-    jcenter()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://plugins.gradle.org/m2")
+    maven("https://jitpack.io")
   }
 
   dependencies {
@@ -22,8 +22,8 @@ allprojects {
     mavenLocal()
     google()
     mavenCentral()
-    jcenter()
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://plugins.gradle.org/m2")
+    maven("https://jitpack.io")
   }
 }

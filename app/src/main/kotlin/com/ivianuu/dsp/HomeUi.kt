@@ -30,58 +30,84 @@ import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.ui.common.HorizontalList
-import com.ivianuu.essentials.ui.common.SimpleListScreen
+import com.ivianuu.essentials.ui.common.VerticalList
+import com.ivianuu.essentials.ui.dialog.ListKey
+import com.ivianuu.essentials.ui.dialog.TextInputKey
+import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
+import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
+import com.ivianuu.essentials.ui.navigation.KeyUiContext
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
 import com.ivianuu.essentials.ui.navigation.RootKey
+import com.ivianuu.essentials.ui.navigation.push
+import com.ivianuu.essentials.ui.popup.PopupMenu
+import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.flow.first
 import kotlin.math.absoluteValue
 
 @Provide object HomeKey : RootKey
 
 @Provide val homeUi = ModelKeyUi<HomeKey, HomeModel> {
-  SimpleListScreen("DSP") {
-    item {
-      SwitchListItem(
-        value = dspEnabled,
-        onValueChange = updateDspEnabled,
-        title = { Text("DSP Enabled") }
-      )
-    }
-
-    item {
-      Subheader { Text("Equalizer") }
-    }
-
-    item {
-      Equalizer(eq = eq.toList()
-        .sortedBy { it.first }
-        .toMap(), onBandChange = updateEqBand)
-    }
-
-    item {
-      Subheader { Text("Other") }
-    }
-
-    item {
-      val valueRange = 0f..BASS_BOOST_DB
-      SliderListItem(
-        value = lerp(valueRange.start, valueRange.endInclusive, bassBoost),
-        onValueChange = {
-          updateBassBoost(
-            calcFraction(valueRange.start, valueRange.endInclusive, it)
+  Scaffold(
+    topBar = {
+      TopAppBar(
+        title = { Text("DSP") },
+        actions = {
+          PopupMenuButton(
+            items = listOf(
+              PopupMenu.Item(onSelected = loadConfig) { Text("Load config") },
+              PopupMenu.Item(onSelected = saveConfig) { Text("Save config") },
+              PopupMenu.Item(onSelected = deleteConfig) { Text("Delete config") }
+            )
           )
-        },
-        valueRange = valueRange,
-        title = { Text("Bass boost") },
-        stepPolicy = incrementingStepPolicy(1f),
-        valueText = { Text("${it.toInt()}db") }
+        }
       )
+    }
+  ) {
+    VerticalList {
+      item {
+        SwitchListItem(
+          value = dspEnabled,
+          onValueChange = updateDspEnabled,
+          title = { Text("DSP Enabled") }
+        )
+      }
+
+      item {
+        Subheader { Text("Equalizer") }
+      }
+
+      item {
+        Equalizer(eq = currentConfig.eq.toList()
+          .sortedBy { it.first }
+          .toMap(), onBandChange = updateEqBand)
+      }
+
+      item {
+        Subheader { Text("Other") }
+      }
+
+      item {
+        val valueRange = 0f..BASS_BOOST_DB
+        SliderListItem(
+          value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.bassBoost),
+          onValueChange = {
+            updateBassBoost(
+              calcFraction(valueRange.start, valueRange.endInclusive, it)
+            )
+          },
+          valueRange = valueRange,
+          title = { Text("Bass boost") },
+          stepPolicy = incrementingStepPolicy(1f),
+          valueText = { Text("${it.toInt()}db") }
+        )
+      }
     }
   }
 }
@@ -200,27 +226,64 @@ private fun calcFraction(a: Float, b: Float, pos: Float) =
 data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
-  val eq: Map<Float, Float>,
+  val currentConfig: Config,
   val updateEqBand: (Float, Float) -> Unit,
-  val bassBoost: Float,
-  val updateBassBoost: (Float) -> Unit
+  val updateBassBoost: (Float) -> Unit,
+  val loadConfig: () -> Unit,
+  val saveConfig: () -> Unit,
+  val deleteConfig: () -> Unit
 )
 
-@Provide fun homeModel(pref: DataStore<DspPrefs>) = Model {
+@Provide fun homeModel(
+  configRepository: ConfigRepository,
+  pref: DataStore<DspPrefs>,
+  ctx: KeyUiContext<HomeKey>
+) = Model {
   val prefs = pref.data.bind(DspPrefs())
+
+  val currentConfig = configRepository.currentConfig.bind(Config())
 
   HomeModel(
     dspEnabled = prefs.dspEnabled,
     updateDspEnabled = action { value -> pref.updateData { copy(dspEnabled = value) } },
-    eq = prefs.eq,
+    currentConfig = currentConfig,
     updateEqBand = action { band, value ->
-      pref.updateData {
-        copy(eq = eq.toMutableMap().apply {
-          put(band, value)
-        })
-      }
+      configRepository.updateCurrentConfig(
+        currentConfig.copy(
+          eq = currentConfig.eq.toMutableMap().apply {
+            put(band, value)
+          }
+        )
+      )
     },
-    bassBoost = prefs.bassBoost,
-    updateBassBoost = action { value -> pref.updateData { copy(bassBoost = value) } }
+    updateBassBoost = action { value ->
+      configRepository.updateCurrentConfig(currentConfig.copy(bassBoost = value))
+    },
+    loadConfig = action {
+      val config = ctx.navigator.push(
+        ListKey(
+          items = configRepository.configs
+            .first()
+            .map { ListKey.Item(it, it.key) }
+        )
+      )?.value ?: return@action
+      configRepository.updateCurrentConfig(config)
+    },
+    saveConfig = action {
+      val id = ctx.navigator.push(
+        TextInputKey(label = "Config id..")
+      ) ?: return@action
+      configRepository.saveConfig(id, currentConfig)
+    },
+    deleteConfig = action {
+      val id = ctx.navigator.push(
+        ListKey(
+          items = configRepository.configs
+            .first()
+            .map { ListKey.Item(it.key, it.key) }
+        )
+      ) ?: return@action
+      configRepository.deleteConfig(id)
+    }
   )
 }

@@ -11,10 +11,11 @@ import android.media.audiofx.AudioEffect
 import androidx.compose.ui.graphics.toArgb
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
-import com.ivianuu.essentials.android.prefs.DataStoreModule
+import com.ivianuu.essentials.android.prefs.PrefModule
 import com.ivianuu.essentials.app.EsActivity
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
+import com.ivianuu.essentials.coroutines.combine
 import com.ivianuu.essentials.coroutines.guarantee
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
@@ -31,7 +32,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -43,15 +44,20 @@ import java.util.*
 @Provide fun musicSessionWorker(
   audioSessionPref: DataStore<AudioSessionPrefs>,
   broadcastsFactory: BroadcastsFactory,
+  configRepository: ConfigRepository,
   context: AppContext,
-  dspPref: DataStore<DspPrefs>,
   foregroundManager: ForegroundManager,
   logger: Logger,
-  notificationFactory: NotificationFactory
+  notificationFactory: NotificationFactory,
+  pref: DataStore<DspPrefs>
 ) = ScopeWorker<AppScope> {
   // reset eq pref
-  dspPref.updateData {
-    copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
+  pref.updateData {
+    fun Config.fix() = copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
+    copy(
+      currentConfig = currentConfig.fix(),
+      configs = configs.mapValues { it.value.fix() }
+    )
   }
 
   foregroundManager.runInForeground(
@@ -73,10 +79,16 @@ import java.util.*
       color = DspTheme.Primary.toArgb()
     }
   ) {
-    combine(dspPref.data, audioSessions()) { a, b -> a to b }
-      .collectLatest { (prefs, audioSessions) ->
+    combine(
+      pref.data
+        .map { it.dspEnabled }
+        .distinctUntilChanged(),
+      configRepository.currentConfig,
+      audioSessions()
+    )
+      .collectLatest { (enabled, config, audioSessions) ->
         audioSessions.values.parForEach { audioSession ->
-          audioSession.apply(prefs)
+          audioSession.apply(enabled, config)
         }
       }
   }
@@ -86,7 +98,7 @@ import java.util.*
   val knownAudioSessions: Set<Int> = emptySet()
 ) {
   companion object {
-    @Provide val prefModule = DataStoreModule("audio_session_prefs") { AudioSessionPrefs() }
+    @Provide val prefModule = PrefModule { AudioSessionPrefs() }
   }
 }
 
@@ -183,8 +195,8 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     log { "$sessionId -> start" }
   }
 
-  suspend fun apply(prefs: DspPrefs) {
-    log { "$sessionId apply prefs -> $prefs" }
+  suspend fun apply(enabled: Boolean, config: Config) {
+    log { "$sessionId apply config -> enabled $enabled $config" }
 
     // enable
     if (needsResync) {
@@ -193,13 +205,13 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
       delay(1000)
     }
 
-    jamesDSP.enabled = prefs.dspEnabled
+    jamesDSP.enabled = enabled
 
     // eq switch
     setParameterShort(1202, 1)
 
     // eq levels
-    val sortedEq = prefs.eq
+    val sortedEq = config.eq
       .toList()
       .sortedBy { it.first }
 
@@ -213,11 +225,11 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // bass boost switch
     setParameterShort(
       1201,
-      if (prefs.bassBoost > 0) 1 else 0
+      if (config.bassBoost > 0) 1 else 0
     )
 
     // bass boost gain
-    setParameterShort(112, (BASS_BOOST_DB * prefs.bassBoost).toInt().toShort())
+    setParameterShort(112, (BASS_BOOST_DB * config.bassBoost).toInt().toShort())
   }
 
   fun release() {
