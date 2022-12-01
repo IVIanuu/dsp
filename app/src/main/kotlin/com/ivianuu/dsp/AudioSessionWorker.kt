@@ -230,12 +230,6 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
 
     // bass boost gain
     setParameterShort(112, (BASS_BOOST_DB * config.bassBoost).toInt().toShort())
-
-    // post gain
-    setParameterFloatArray(
-      1500,
-      floatArrayOf(-0.1f, 60f, POST_GAIN_DB * config.postGain)
-    )
   }
 
   fun release() {
