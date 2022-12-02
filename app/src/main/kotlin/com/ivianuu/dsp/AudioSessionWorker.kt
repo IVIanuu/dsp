@@ -8,6 +8,9 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
+import android.media.audiofx.BassBoost
+import android.media.audiofx.Equalizer
+import android.media.audiofx.LoudnessEnhancer
 import androidx.compose.ui.graphics.toArgb
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
@@ -24,6 +27,7 @@ import com.ivianuu.essentials.getOrElse
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.onFailure
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
@@ -41,7 +45,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
 
-@Provide fun musicSessionWorker(
+@Provide fun audioSessionWorker(
   audioSessionPref: DataStore<AudioSessionPrefs>,
   broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
@@ -130,14 +134,24 @@ private fun audioSessions(
         .collect { (event, sessionId) ->
           when (event) {
             AudioSessionEvent.START -> {
-              val session = catch { AudioSession(sessionId) }.getOrElse {
-                // second time works lol:D
-                catch {
-                  AudioSession(sessionId)
-                    .also { it.needsResync = true }
+              val session = catch { AudioSession(sessionId) }
+                .onFailure { it.printStackTrace() }
+                .getOrElse {
+                  // second time works lol:D
+                  catch {
+                    AudioSession(sessionId)
+                      .also { it.needsResync = true }
+                  }
+                    .onFailure { it.printStackTrace() }
+                    .getOrElse {
+                      catch {
+                        AudioSession(sessionId)
+                          .also { it.needsResync = true }
+                      }
+                        .onFailure { it.printStackTrace() }
+                        .getOrElse { null }
+                    }
                 }
-                  .getOrElse { null }
-              }
               if (session != null) {
                 audioSessions[sessionId] = session
                 send(audioSessions.toMap())
@@ -178,16 +192,9 @@ private enum class AudioSessionEvent {
 }
 
 class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
-  private val jamesDSP = try {
-    AudioEffect::class.java.getConstructor(
-      UUID::class.java,
-      UUID::class.java, Integer.TYPE, Integer.TYPE
-    ).newInstance(EFFECT_TYPE_CUSTOM, EFFECT_TYPE_JAMES_DSP, 0, sessionId)
-  } catch (e: Throwable) {
-    // todo injekt bug
-    log(logger = logger) { "$sessionId couln't create" }
-    throw IllegalStateException("Couldn't create effect for $sessionId")
-  }
+  private val bassBoost = BassBoost(0, sessionId)
+  private val equalizer = Equalizer(0, sessionId)
+  private val loudnessEnhancer = LoudnessEnhancer(sessionId)
 
   var needsResync = false
 
@@ -200,92 +207,44 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
 
     // enable
     if (needsResync) {
-      jamesDSP.enabled = false
+      bassBoost.enabled = false
+      equalizer.enabled = false
+      loudnessEnhancer.enabled = false
       needsResync = false
       delay(1000)
     }
 
-    jamesDSP.enabled = enabled
+    bassBoost.enabled = enabled
+    equalizer.enabled = enabled
+    loudnessEnhancer.enabled = enabled
 
-    // eq switch
-    setParameterShort(1202, 1)
+    // bass boost
+    bassBoost.setStrength((config.bassBoost * BASS_BOOST_DB * 100).toInt().toShort())
 
-    // eq levels
-    val sortedEq = config.eq
+    // eq
+    config.eq
       .toList()
       .sortedBy { it.first }
+      .forEachIndexed { index, pair ->
+        equalizer.setBandLevel(
+          index.toShort(),
+          lerp(
+            equalizer.bandLevelRange[0].toFloat(),
+            equalizer.bandLevelRange[1].toFloat(),
+            pair.second
+          )
+            .toInt()
+            .toShort()
+        )
+      }
 
-    val eqLevels = (sortedEq.map { it.first } +
-        sortedEq.map { (_, value) -> lerp(-EQ_DB, EQ_DB, value) }).toFloatArray()
-
-    log { "eq levels ${eqLevels.contentToString()}" }
-
-    setParameterFloatArray(116, floatArrayOf(-1f, -1f) + eqLevels)
-
-    // bass boost switch
-    setParameterShort(
-      1201,
-      if (config.bassBoost > 0) 1 else 0
-    )
-
-    // bass boost gain
-    setParameterShort(112, (BASS_BOOST_DB * config.bassBoost).toInt().toShort())
-
-    // post gain
-    setParameterFloatArray(
-      1500,
-      floatArrayOf(-0.1f, 60f, POST_GAIN_DB * config.postGain)
-    )
+    loudnessEnhancer.setTargetGain((config.postGain * POST_GAIN_DB * 100).toInt())
   }
 
   fun release() {
     log { "$sessionId -> stop" }
-    jamesDSP.release()
-  }
-
-  private fun setParameterShort(parameter: Int, value: Short) {
-    try {
-      val arguments = byteArrayOf(
-        parameter.toByte(), (parameter shr 8).toByte(),
-        (parameter shr 16).toByte(), (parameter shr 24).toByte()
-      )
-      val result = byteArrayOf(
-        value.toByte(), (value.toInt() shr 8).toByte()
-      )
-      val setParameter = AudioEffect::class.java.getMethod(
-        "setParameter",
-        ByteArray::class.java,
-        ByteArray::class.java
-      )
-      setParameter.invoke(jamesDSP, arguments, result)
-    } catch (e: Exception) {
-      throw RuntimeException(e)
-    }
-  }
-
-  private fun setParameterFloatArray(parameter: Int, value: FloatArray) {
-    try {
-      val arguments = byteArrayOf(
-        parameter.toByte(), (parameter shr 8).toByte(),
-        (parameter shr 16).toByte(), (parameter shr 24).toByte()
-      )
-      val result = ByteArray(value.size * 4)
-      val byteDataBuffer = ByteBuffer.wrap(result)
-      byteDataBuffer.order(ByteOrder.nativeOrder())
-      for (i in value.indices) byteDataBuffer.putFloat(value[i])
-      val setParameter = AudioEffect::class.java.getMethod(
-        "setParameter",
-        ByteArray::class.java,
-        ByteArray::class.java
-      )
-      setParameter.invoke(jamesDSP, arguments, result)
-    } catch (e: Exception) {
-      throw RuntimeException(e)
-    }
-  }
-
-  companion object {
-    private val EFFECT_TYPE_CUSTOM = UUID.fromString("f98765f4-c321-5de6-9a45-123459495ab2")
-    private val EFFECT_TYPE_JAMES_DSP = UUID.fromString("f27317f4-c984-4de6-9a90-545759495bf2")
+    bassBoost.release()
+    equalizer.release()
+    loudnessEnhancer.release()
   }
 }
