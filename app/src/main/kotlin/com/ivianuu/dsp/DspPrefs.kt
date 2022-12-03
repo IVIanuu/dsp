@@ -23,7 +23,7 @@ import kotlinx.serialization.Serializable
 )
 
 @Serializable data class VolumeConfig(
-  val volumeRange: ClosedRange<Float> = 0f..1f,
+  val volume: Float = 0.5f,
   val eqConfig: EqConfig = EqConfig()
 )
 

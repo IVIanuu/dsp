@@ -27,6 +27,7 @@ import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.onFailure
+import com.ivianuu.essentials.unlerp
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
@@ -100,7 +101,8 @@ import java.util.*
         .distinctUntilChanged(),
       configRepository.currentConfig
         .flatMapLatest { dspConfig ->
-          audioManager.
+          audioVolume()
+            .map { dspConfig.eqConfigForVolume(it) }
         },
       audioSessions()
     )
@@ -112,6 +114,23 @@ import java.util.*
   }
 }
 
+private fun DspConfig.eqConfigForVolume(volume: Float): EqConfig {
+  val start = volumeConfigs.last { it.volume <= volume }
+  val stop = volumeConfigs.first { it.volume >= volume }
+  val fraction = unlerp(start.volume, stop.volume, volume)
+  return lerp(start.eqConfig, stop.eqConfig, fraction)
+}
+
+private fun lerp(start: EqConfig, stop: EqConfig, fraction: Float): EqConfig = EqConfig(
+  eq = start.eq
+    .mapValues { (band, startValue) ->
+      val stopValue = stop.eq[band]!!
+      lerp(startValue, stopValue, fraction)
+    },
+  bassBoost = lerp(start.bassBoost, stop.bassBoost, fraction),
+  postGain = lerp(start.postGain, stop.postGain, fraction)
+)
+
 @Serializable data class AudioSessionPrefs(
   val knownAudioSessions: Set<Int> = emptySet()
 ) {
@@ -119,6 +138,20 @@ import java.util.*
     @Provide val prefModule = PrefModule { AudioSessionPrefs() }
   }
 }
+
+private fun audioVolume(
+  @Inject audioManager: @SystemService AudioManager,
+  @Inject broadcastsFactory: BroadcastsFactory
+) = broadcastsFactory("android.media.VOLUME_CHANGED_ACTION")
+  .onStart<Any?> { emit(Unit) }
+  .map {
+    unlerp(
+      audioManager.getStreamMinVolume(AudioManager.STREAM_MUSIC),
+      audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC),
+      audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+    )
+  }
+  .distinctUntilChanged()
 
 private fun audioSessions(
   @Inject broadcastsFactory: BroadcastsFactory,
