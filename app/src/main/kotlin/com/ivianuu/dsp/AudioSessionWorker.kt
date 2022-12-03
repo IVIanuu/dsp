@@ -7,6 +7,7 @@ package com.ivianuu.dsp
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
+import android.media.AudioManager
 import android.media.audiofx.AudioEffect
 import android.media.audiofx.LoudnessEnhancer
 import androidx.compose.ui.graphics.toArgb
@@ -30,12 +31,14 @@ import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.android.SystemService
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.serialization.Serializable
@@ -44,6 +47,7 @@ import java.nio.ByteOrder
 import java.util.*
 
 @Provide fun audioSessionWorker(
+  audioManager: @SystemService AudioManager,
   audioSessionPref: DataStore<AudioSessionPrefs>,
   broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
@@ -55,10 +59,19 @@ import java.util.*
 ) = ScopeWorker<AppScope> {
   // reset eq pref
   pref.updateData {
-    fun Config.fix() = copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
+    fun DspConfig.fix() = copy(
+      volumeConfigs = volumeConfigs
+        .map {
+          it.copy(
+            eqConfig = it.eqConfig.copy(
+              eq = EqBands.associateWith { band -> it.eqConfig.eq[band] ?: 0.5f }
+            )
+          )
+        }
+    )
     copy(
       currentConfig = currentConfig.fix(),
-      configs = configs.mapValues { it.value.fix() }
+      dspConfigs = dspConfigs.mapValues { it.value.fix() }
     )
   }
 
@@ -85,7 +98,10 @@ import java.util.*
       pref.data
         .map { it.dspEnabled }
         .distinctUntilChanged(),
-      configRepository.currentConfig,
+      configRepository.currentConfig
+        .flatMapLatest { dspConfig ->
+          audioManager.
+        },
       audioSessions()
     )
       .collectLatest { (enabled, config, audioSessions) ->
@@ -208,7 +224,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     log { "$sessionId -> start" }
   }
 
-  suspend fun apply(enabled: Boolean, config: Config) {
+  suspend fun apply(enabled: Boolean, config: EqConfig) {
     log { "$sessionId apply config -> enabled $enabled $config" }
 
     // enable

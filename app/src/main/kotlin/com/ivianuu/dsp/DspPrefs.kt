@@ -10,15 +10,24 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
-  val currentConfig: Config = Config(),
-  val configs: Map<String, Config> = mapOf("default" to Config())
+  val currentConfig: DspConfig = DspConfig(),
+  val dspConfigs: Map<String, DspConfig> = mapOf("default" to DspConfig())
 ) {
   companion object {
     @Provide val prefModule = PrefModule { DspPrefs() }
   }
 }
 
-@Serializable data class Config(
+@Serializable data class DspConfig(
+  val volumeConfigs: List<VolumeConfig> = listOf(VolumeConfig())
+)
+
+@Serializable data class VolumeConfig(
+  val volumeRange: ClosedRange<Float> = 0f..1f,
+  val eqConfig: EqConfig = EqConfig()
+)
+
+@Serializable data class EqConfig(
   val eq: Map<Float, Float> = EqBands.associateWith { 0.5f },
   val bassBoost: Float = 0.0f,
   val postGain: Float = 0.0f

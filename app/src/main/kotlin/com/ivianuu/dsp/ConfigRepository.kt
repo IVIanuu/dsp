@@ -13,28 +13,28 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 
 @Provide @Scoped<AppScope> class ConfigRepository(private val pref: DataStore<DspPrefs>) {
-  val currentConfig: Flow<Config>
+  val currentConfig: Flow<DspConfig>
     get() = pref.data
       .map { it.currentConfig }
       .distinctUntilChanged()
 
-  val configs: Flow<Map<String, Config>>
+  val configs: Flow<Map<String, DspConfig>>
     get() = pref.data
-      .map { it.configs }
+      .map { it.dspConfigs }
       .distinctUntilChanged()
 
-  suspend fun updateCurrentConfig(config: Config) {
+  suspend fun updateCurrentConfig(config: DspConfig) {
     pref.updateData { copy(currentConfig = config) }
   }
 
-  suspend fun saveConfig(id: String, config: Config) {
-    pref.updateData { copy(configs = configs + (id to config)) }
+  suspend fun saveConfig(id: String, config: DspConfig) {
+    pref.updateData { copy(dspConfigs = dspConfigs + (id to config)) }
   }
 
   suspend fun deleteConfig(id: String) {
     pref.updateData {
       copy(
-        configs = configs
+        dspConfigs = dspConfigs
           .filterKeys { it != id }
       )
     }
