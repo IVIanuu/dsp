@@ -26,7 +26,7 @@ import kotlinx.serialization.Serializable
 
 const val EQ_DB = 15f
 const val BASS_BOOST_DB = 15f
-const val POST_GAIN_DB = 100f
+const val POST_GAIN_DB = 40f
 
 val EqBands = listOf(
   25f,
