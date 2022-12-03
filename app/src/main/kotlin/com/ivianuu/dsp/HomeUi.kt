@@ -47,6 +47,7 @@ import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
+import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.first
 import kotlin.math.absoluteValue
@@ -99,7 +100,7 @@ import kotlin.math.absoluteValue
           value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.bassBoost),
           onValueChange = {
             updateBassBoost(
-              calcFraction(valueRange.start, valueRange.endInclusive, it)
+              unlerp(valueRange.start, valueRange.endInclusive, it)
             )
           },
           valueRange = valueRange,
@@ -115,7 +116,7 @@ import kotlin.math.absoluteValue
           value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.postGain),
           onValueChange = {
             updatePostGain(
-              calcFraction(valueRange.start, valueRange.endInclusive, it)
+              unlerp(valueRange.start, valueRange.endInclusive, it)
             )
           },
           valueRange = valueRange,
@@ -193,7 +194,7 @@ import kotlin.math.absoluteValue
                 onValueChangeFinished = {
                   onBandChange(
                     band,
-                    calcFraction(valueRange.start, valueRange.endInclusive, internalValue)
+                    unlerp(valueRange.start, valueRange.endInclusive, internalValue)
                   )
                 },
                 stepPolicy = stepPolicy
@@ -235,9 +236,6 @@ import kotlin.math.absoluteValue
     }
   }
 }
-
-private fun calcFraction(a: Float, b: Float, pos: Float) =
-  (if (b - a == 0f) 0f else (pos - a) / (b - a)).coerceIn(0f, 1f)
 
 data class HomeModel(
   val dspEnabled: Boolean,
