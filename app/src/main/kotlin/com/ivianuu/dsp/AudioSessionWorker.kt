@@ -8,7 +8,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
-import android.media.audiofx.LoudnessEnhancer
 import androidx.compose.ui.graphics.toArgb
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
@@ -200,7 +199,6 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     log(logger = logger) { "$sessionId couln't create" }
     throw IllegalStateException("Couldn't create effect for $sessionId")
   }
-  private val loudnessEnhancer = LoudnessEnhancer(sessionId)
 
   var needsResync = false
 
@@ -214,13 +212,11 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // enable
     if (needsResync) {
       jamesDSP.enabled = false
-      loudnessEnhancer.enabled = false
       needsResync = false
       delay(1000)
     }
 
     jamesDSP.enabled = enabled
-    loudnessEnhancer.enabled = enabled
 
     // eq switch
     setParameterShort(1202, 1)
@@ -246,13 +242,16 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     // bass boost gain
     setParameterShort(112, (BASS_BOOST_DB * config.bassBoost).toInt().toShort())
 
-    loudnessEnhancer.setTargetGain((config.postGain * POST_GAIN_DB * 100).toInt())
+    // post gain
+    setParameterFloatArray(
+      1500,
+      floatArrayOf(-0.1f, 60f, POST_GAIN_DB * config.postGain)
+    )
   }
 
   fun release() {
     log { "$sessionId -> stop" }
     jamesDSP.release()
-    loudnessEnhancer.release()
   }
 
   private fun setParameterShort(parameter: Int, value: Short) {
