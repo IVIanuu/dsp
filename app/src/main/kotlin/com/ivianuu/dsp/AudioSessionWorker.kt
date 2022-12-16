@@ -74,7 +74,8 @@ import java.util.*
           context,
           1,
           Intent(context, EsActivity::class.java),
-          PendingIntent.FLAG_UPDATE_CURRENT
+          PendingIntent.FLAG_UPDATE_CURRENT or
+              PendingIntent.FLAG_IMMUTABLE
         )
       )
       color = DspTheme.Primary.toArgb()
