@@ -263,6 +263,7 @@ data class HomeModel(
           items = configRepository.configs
             .first()
             .map { ListKey.Item(it, it.key) }
+            .sortedBy { it.title }
         )
       )?.value ?: return@action
       configRepository.updateCurrentConfig(config)
