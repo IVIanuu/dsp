@@ -27,6 +27,7 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.lerp
+import com.ivianuu.essentials.permission.PermissionRequester
 import com.ivianuu.essentials.state.action
 import com.ivianuu.essentials.state.bind
 import com.ivianuu.essentials.ui.common.HorizontalList
@@ -49,6 +50,7 @@ import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
+import com.ivianuu.injekt.common.typeKeyOf
 import kotlinx.coroutines.flow.first
 import kotlin.math.absoluteValue
 
@@ -234,6 +236,7 @@ data class HomeModel(
 
 @Provide fun homeModel(
   configRepository: ConfigRepository,
+  permissionRequester: PermissionRequester,
   pref: DataStore<DspPrefs>,
   ctx: KeyUiContext<HomeKey>
 ) = Model {
@@ -243,7 +246,10 @@ data class HomeModel(
 
   HomeModel(
     dspEnabled = prefs.dspEnabled,
-    updateDspEnabled = action { value -> pref.updateData { copy(dspEnabled = value) } },
+    updateDspEnabled = action { value ->
+      if (!value || permissionRequester(listOf(typeKeyOf<DspBatteryOptimizationPermission>())))
+        pref.updateData { copy(dspEnabled = value) }
+    },
     currentConfig = currentConfig,
     updateEqBand = action { band, value ->
       configRepository.updateCurrentConfig(
