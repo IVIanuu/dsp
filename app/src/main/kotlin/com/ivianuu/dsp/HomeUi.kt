@@ -168,7 +168,7 @@ import kotlin.math.absoluteValue
 
           Layout(
             modifier = Modifier
-              .height(200.dp)
+              .height(250.dp)
               .fillMaxWidth(),
             content = {
               Slider(
