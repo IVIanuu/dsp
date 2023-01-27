@@ -19,7 +19,7 @@ object DspTheme {
   val Secondary = Color(0xFFF7B731)
 }
 
-@Provide fun dspTheme(resourceProvider: ResourceProvider) = AppTheme { content ->
+@Provide val dspTheme = AppTheme { content ->
   EsTheme(
     colors = LightAndDarkColors(
       primary = DspTheme.Primary,

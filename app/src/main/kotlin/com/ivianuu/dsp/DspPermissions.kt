@@ -10,8 +10,10 @@ import com.ivianuu.injekt.common.typeKeyOf
   "Ignore battery optimizations"
 )
 
+val dspPermissions = listOf(typeKeyOf<DspBatteryOptimizationPermission>())
+
 @Provide fun DspPermissionRevokeHandler(
   pref: DataStore<DspPrefs>
-) = PermissionRevokeHandler(
-  listOf(typeKeyOf<DspBatteryOptimizationPermission>())
-) { pref.updateData { copy(dspEnabled = false) } }
+) = PermissionRevokeHandler(dspPermissions) {
+  pref.updateData { copy(dspEnabled = false) }
+}

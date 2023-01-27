@@ -20,15 +20,16 @@ import com.ivianuu.essentials.coroutines.guarantee
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
-import com.ivianuu.essentials.getOrElse
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.onFailure
+import com.ivianuu.essentials.onSuccess
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -37,6 +38,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -62,7 +64,7 @@ import java.util.*
   }
 
   foregroundManager.runInForeground(
-    notificationFactory.build(
+    notificationFactory.buildNotification(
       "foreground",
       "Foreground",
       NotificationManager.IMPORTANCE_LOW
@@ -113,7 +115,7 @@ private fun audioSessions(
 
   guarantee(
     {
-      broadcastsFactory(
+      broadcastsFactory.broadcasts(
         AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
         AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
       )
@@ -132,26 +134,19 @@ private fun audioSessions(
         .collect { (event, sessionId) ->
           when (event) {
             AudioSessionEvent.START -> {
-              val session = catch { AudioSession(sessionId) }
-                .onFailure { it.printStackTrace() }
-                .getOrElse {
-                  // second time works lol:D
-                  catch {
-                    AudioSession(sessionId)
-                      .also { it.needsResync = true }
-                  }
-                    .onFailure { it.printStackTrace() }
-                    .getOrElse {
-                      catch {
-                        AudioSession(sessionId)
-                          .also { it.needsResync = true }
-                      }
-                        .onFailure { it.printStackTrace() }
-                        .getOrElse { null }
-                    }
-                }
+              var session: AudioSession? = null
+              var attempt = 0
+
+              while (attempt < 5) {
+                catch { AudioSession(sessionId) }
+                  .onFailure { it.printStackTrace() }
+                  .onSuccess { session = it }
+
+                attempt++
+              }
+
               if (session != null) {
-                audioSessions[sessionId] = session
+                audioSessions[sessionId] = session!!
                 send(audioSessions.toMap())
                 audioSessionPref.updateData {
                   copy(
@@ -189,7 +184,10 @@ private enum class AudioSessionEvent {
   START, STOP
 }
 
-class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
+class AudioSession(
+  private val sessionId: Int,
+  @Inject val logger: Logger
+) {
   private val jamesDSP = try {
     AudioEffect::class.java.getConstructor(
       UUID::class.java,
@@ -197,7 +195,9 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     ).newInstance(EFFECT_TYPE_CUSTOM, EFFECT_TYPE_JAMES_DSP, 0, sessionId)
   } catch (e: Throwable) {
     // todo injekt bug
-    log(logger = logger) { "$sessionId couln't create" }
+    with(logger) {
+      log { "$sessionId couln't create" }
+    }
     throw IllegalStateException("Couldn't create effect for $sessionId")
   }
 
@@ -246,7 +246,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
 
   fun release() {
     log { "$sessionId -> stop" }
-    jamesDSP.release()
+    catch { jamesDSP.release() }
   }
 
   private fun setParameterShort(parameter: Int, value: Short) {

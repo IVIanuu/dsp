@@ -27,9 +27,9 @@ import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.lerp
-import com.ivianuu.essentials.permission.PermissionRequester
-import com.ivianuu.essentials.state.action
-import com.ivianuu.essentials.state.bind
+import com.ivianuu.essentials.compose.action
+import com.ivianuu.essentials.compose.bind
+import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListKey
@@ -44,8 +44,8 @@ import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.ModelKeyUi
 import com.ivianuu.essentials.ui.navigation.RootKey
 import com.ivianuu.essentials.ui.navigation.push
-import com.ivianuu.essentials.ui.popup.PopupMenu
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
+import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.unlerp
@@ -62,13 +62,11 @@ import kotlin.math.absoluteValue
       TopAppBar(
         title = { Text("DSP") },
         actions = {
-          PopupMenuButton(
-            items = listOf(
-              PopupMenu.Item(onSelected = loadConfig) { Text("Load config") },
-              PopupMenu.Item(onSelected = saveConfig) { Text("Save config") },
-              PopupMenu.Item(onSelected = deleteConfig) { Text("Delete config") }
-            )
-          )
+          PopupMenuButton {
+            PopupMenuItem(onSelected = loadConfig) { Text("Load config") }
+            PopupMenuItem(onSelected = saveConfig) { Text("Save config") }
+            PopupMenuItem(onSelected = deleteConfig) { Text("Delete config") }
+          }
         }
       )
     }
@@ -236,7 +234,7 @@ data class HomeModel(
 
 @Provide fun homeModel(
   configRepository: ConfigRepository,
-  permissionRequester: PermissionRequester,
+  permissionManager: PermissionManager,
   pref: DataStore<DspPrefs>,
   ctx: KeyUiContext<HomeKey>
 ) = Model {
@@ -247,7 +245,7 @@ data class HomeModel(
   HomeModel(
     dspEnabled = prefs.dspEnabled,
     updateDspEnabled = action { value ->
-      if (!value || permissionRequester(listOf(typeKeyOf<DspBatteryOptimizationPermission>())))
+      if (!value || permissionManager.requestPermissions(dspPermissions))
         pref.updateData { copy(dspEnabled = value) }
     },
     currentConfig = currentConfig,
@@ -268,10 +266,10 @@ data class HomeModel(
         ListKey(
           items = configRepository.configs
             .first()
-            .map { ListKey.Item(it, it.key) }
-            .sortedBy { it.title }
-        )
-      )?.value ?: return@action
+            .toList()
+            .sortedBy { it.first }
+        ) { first }
+      )?.second ?: return@action
       configRepository.updateCurrentConfig(config)
     },
     saveConfig = action {
@@ -285,7 +283,8 @@ data class HomeModel(
         ListKey(
           items = configRepository.configs
             .first()
-            .map { ListKey.Item(it.key, it.key) }
+            .keys
+            .sortedBy { it }
         )
       ) ?: return@action
       configRepository.deleteConfig(id)
