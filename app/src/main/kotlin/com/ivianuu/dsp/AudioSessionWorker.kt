@@ -201,21 +201,12 @@ class AudioSession(
     throw IllegalStateException("Couldn't create effect for $sessionId")
   }
 
-  var needsResync = false
-
   init {
     log { "$sessionId -> start" }
   }
 
   suspend fun apply(enabled: Boolean, config: Config) {
     log { "$sessionId apply config -> enabled $enabled $config" }
-
-    // enable
-    if (needsResync) {
-      jamesDSP.enabled = false
-      needsResync = false
-      delay(1000)
-    }
 
     jamesDSP.enabled = enabled
 
