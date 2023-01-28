@@ -99,9 +99,7 @@ import kotlin.math.absoluteValue
         SliderListItem(
           value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.bassBoost),
           onValueChangeFinished = {
-            updateBassBoost(
-              unlerp(valueRange.start, valueRange.endInclusive, it)
-            )
+            updateBassBoost(unlerp(valueRange.start, valueRange.endInclusive, it))
           },
           valueRange = valueRange,
           title = { Text("Bass boost") },
