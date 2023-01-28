@@ -98,7 +98,7 @@ import kotlin.math.absoluteValue
         val valueRange = 0f..BASS_BOOST_DB
         SliderListItem(
           value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.bassBoost),
-          onValueChange = {
+          onValueChangeFinished = {
             updateBassBoost(
               unlerp(valueRange.start, valueRange.endInclusive, it)
             )
