@@ -137,7 +137,7 @@ private fun audioSessions(
               var session: AudioSession? = null
               var attempt = 0
 
-              while (attempt < 5) {
+              while (session == null && attempt < 5) {
                 catch { AudioSession(sessionId) }
                   .onFailure { it.printStackTrace() }
                   .onSuccess { session = it }
