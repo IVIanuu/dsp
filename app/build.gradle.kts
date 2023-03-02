@@ -49,6 +49,7 @@ android {
 
 dependencies {
   implementation(Deps.Essentials.android)
+  implementation(Deps.Essentials.backup)
   implementation(Deps.Essentials.boot)
   implementation(Deps.Essentials.foreground)
   implementation(Deps.Essentials.permission)

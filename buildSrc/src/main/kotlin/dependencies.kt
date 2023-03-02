@@ -17,6 +17,7 @@ object Deps {
   object Essentials {
     private const val version = "0.0.1-dev1153"
     const val android = "com.ivianuu.essentials:essentials-android:$version"
+    const val backup = "com.ivianuu.essentials:essentials-backup:$version"
     const val boot = "com.ivianuu.essentials:essentials-boot:$version"
     const val foreground = "com.ivianuu.essentials:essentials-foreground:$version"
     const val gradlePlugin = "com.ivianuu.essentials:essentials-gradle-plugin:$version"

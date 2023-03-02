@@ -25,6 +25,7 @@ import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
+import com.ivianuu.essentials.backup.BackupAndRestoreKey
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.compose.action
@@ -66,6 +67,7 @@ import kotlin.math.absoluteValue
             PopupMenuItem(onSelected = loadConfig) { Text("Load config") }
             PopupMenuItem(onSelected = saveConfig) { Text("Save config") }
             PopupMenuItem(onSelected = deleteConfig) { Text("Delete config") }
+            PopupMenuItem(onSelected = openBackupRestore) { Text("Backup and restore") }
           }
         }
       )
@@ -227,7 +229,8 @@ data class HomeModel(
   val updateBassBoost: (Float) -> Unit,
   val loadConfig: () -> Unit,
   val saveConfig: () -> Unit,
-  val deleteConfig: () -> Unit
+  val deleteConfig: () -> Unit,
+  val openBackupRestore: () -> Unit
 )
 
 @Provide fun homeModel(
@@ -286,6 +289,7 @@ data class HomeModel(
         )
       ) ?: return@action
       configRepository.deleteConfig(id)
-    }
+    },
+    openBackupRestore = action { ctx.navigator.push(BackupAndRestoreKey) }
   )
 }
