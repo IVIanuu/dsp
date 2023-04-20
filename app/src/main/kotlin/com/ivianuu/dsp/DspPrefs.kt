@@ -27,9 +27,9 @@ const val EQ_DB = 15f
 const val BASS_BOOST_DB = 15f
 
 val EqBands = listOf(
-  25f,
   40f,
   60f,
+  80f,
   100f,
   160f,
   250f,
