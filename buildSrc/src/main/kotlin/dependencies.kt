@@ -6,16 +6,16 @@
 
 object Build {
   const val applicationId = "com.ivianuu.dsp"
-  const val compileSdk = 32
-  const val minSdk = 31
-  const val targetSdk = 31
+  const val compileSdk = 33
+  const val minSdk = 33
+  const val targetSdk = 33
   const val versionCode = 1
   const val versionName = "0.0.1"
 }
 
 object Deps {
   object Essentials {
-    private const val version = "0.0.1-dev1153"
+    private const val version = "0.0.1-dev1161"
     const val android = "com.ivianuu.essentials:essentials-android:$version"
     const val backup = "com.ivianuu.essentials:essentials-backup:$version"
     const val boot = "com.ivianuu.essentials:essentials-boot:$version"

@@ -22,7 +22,7 @@ import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
-import com.ivianuu.essentials.logging.log
+import com.ivianuu.essentials.logging.invoke
 import com.ivianuu.essentials.onFailure
 import com.ivianuu.essentials.onSuccess
 import com.ivianuu.essentials.util.BroadcastsFactory
@@ -64,7 +64,7 @@ import java.util.*
   }
 
   foregroundManager.runInForeground(
-    notificationFactory.buildNotification(
+    notificationFactory(
       "foreground",
       "Foreground",
       NotificationManager.IMPORTANCE_LOW
@@ -115,7 +115,7 @@ private fun audioSessions(
 
   guarantee(
     {
-      broadcastsFactory.broadcasts(
+      broadcastsFactory(
         AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
         AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
       )
@@ -174,7 +174,7 @@ private fun audioSessions(
         }
     },
     {
-      log { "stop all sessions $audioSessions" }
+      logger { "stop all sessions $audioSessions" }
       audioSessions.values.forEach { it.release() }
     }
   )
@@ -196,17 +196,17 @@ class AudioSession(
   } catch (e: Throwable) {
     // todo injekt bug
     with(logger) {
-      log { "$sessionId couln't create" }
+      logger { "$sessionId couln't create" }
     }
     throw IllegalStateException("Couldn't create effect for $sessionId")
   }
 
   init {
-    log { "$sessionId -> start" }
+    logger { "$sessionId -> start" }
   }
 
   suspend fun apply(enabled: Boolean, config: Config) {
-    log { "$sessionId apply config -> enabled $enabled $config" }
+    logger { "$sessionId apply config -> enabled $enabled $config" }
 
     jamesDSP.enabled = enabled
 
@@ -221,7 +221,7 @@ class AudioSession(
     val eqLevels = (sortedEq.map { it.first } +
         sortedEq.map { (_, value) -> lerp(-EQ_DB, EQ_DB, value) }).toFloatArray()
 
-    log { "eq levels ${eqLevels.contentToString()}" }
+    logger { "eq levels ${eqLevels.contentToString()}" }
 
     setParameterFloatArray(116, floatArrayOf(-1f, -1f) + eqLevels)
 
@@ -236,7 +236,7 @@ class AudioSession(
   }
 
   fun release() {
-    log { "$sessionId -> stop" }
+    logger { "$sessionId -> stop" }
     catch { jamesDSP.release() }
   }
 

@@ -13,7 +13,7 @@ import com.ivianuu.injekt.common.Scope
 import com.ivianuu.injekt.inject
 
 class App : EsApp() {
-  context(Scope<AppScope>) override fun buildAppElements(): Elements<AppScope> =
+  override fun buildAppElements(@Inject scope: Scope<AppScope>): Elements<AppScope> =
     @Providers(
       ".**",
       "com.ivianuu.essentials.logging.AndroidLogger.Companion.androidLogger"

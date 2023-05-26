@@ -269,7 +269,7 @@ data class HomeModel(
             .first()
             .toList()
             .sortedBy { it.first }
-        ) { first }
+        ) { it.first }
       )?.second ?: return@action
       configRepository.updateCurrentConfig(config)
     },
@@ -290,6 +290,6 @@ data class HomeModel(
       ) ?: return@action
       configRepository.deleteConfig(id)
     },
-    openBackupRestore = action { ctx.navigator.push(BackupAndRestoreKey) }
+    openBackupRestore = action { ctx.navigator.push(BackupAndRestoreKey()) }
   )
 }

@@ -5,7 +5,6 @@
 package com.ivianuu.dsp
 
 import androidx.compose.ui.graphics.Color
-import com.ivianuu.essentials.ResourceProvider
 import com.ivianuu.essentials.rubik.Rubik
 import com.ivianuu.essentials.ui.AppTheme
 import com.ivianuu.essentials.ui.material.EsTheme
