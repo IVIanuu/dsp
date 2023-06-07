@@ -22,9 +22,10 @@ import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
-import com.ivianuu.essentials.logging.invoke
+import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.onFailure
 import com.ivianuu.essentials.onSuccess
+import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
@@ -46,6 +47,7 @@ import java.util.*
 
 @Provide fun audioSessionWorker(
   audioSessionPref: DataStore<AudioSessionPrefs>,
+  appColors: AppColors,
   broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
   context: AppContext,
@@ -80,7 +82,7 @@ import java.util.*
               PendingIntent.FLAG_IMMUTABLE
         )
       )
-      color = DspTheme.Primary.toArgb()
+      color = appColors.primary.toArgb()
     }
   ) {
     combine(
@@ -174,7 +176,7 @@ private fun audioSessions(
         }
     },
     {
-      logger { "stop all sessions $audioSessions" }
+      logger.log { "stop all sessions $audioSessions" }
       audioSessions.values.forEach { it.release() }
     }
   )
@@ -196,17 +198,17 @@ class AudioSession(
   } catch (e: Throwable) {
     // todo injekt bug
     with(logger) {
-      logger { "$sessionId couln't create" }
+      logger.log { "$sessionId couln't create" }
     }
     throw IllegalStateException("Couldn't create effect for $sessionId")
   }
 
   init {
-    logger { "$sessionId -> start" }
+    logger.log { "$sessionId -> start" }
   }
 
   suspend fun apply(enabled: Boolean, config: Config) {
-    logger { "$sessionId apply config -> enabled $enabled $config" }
+    logger.log { "$sessionId apply config -> enabled $enabled $config" }
 
     jamesDSP.enabled = enabled
 
@@ -221,7 +223,7 @@ class AudioSession(
     val eqLevels = (sortedEq.map { it.first } +
         sortedEq.map { (_, value) -> lerp(-EQ_DB, EQ_DB, value) }).toFloatArray()
 
-    logger { "eq levels ${eqLevels.contentToString()}" }
+    logger.log { "eq levels ${eqLevels.contentToString()}" }
 
     setParameterFloatArray(116, floatArrayOf(-1f, -1f) + eqLevels)
 
@@ -236,7 +238,7 @@ class AudioSession(
   }
 
   fun release() {
-    logger { "$sessionId -> stop" }
+    logger.log { "$sessionId -> stop" }
     catch { jamesDSP.release() }
   }
 

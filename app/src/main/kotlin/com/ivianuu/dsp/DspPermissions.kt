@@ -12,7 +12,7 @@ import com.ivianuu.injekt.common.typeKeyOf
 
 val dspPermissions = listOf(typeKeyOf<DspBatteryOptimizationPermission>())
 
-@Provide fun DspPermissionRevokeHandler(
+@Provide fun dspPermissionRevokeHandler(
   pref: DataStore<DspPrefs>
 ) = PermissionRevokeHandler(dspPermissions) {
   pref.updateData { copy(dspEnabled = false) }

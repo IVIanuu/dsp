@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -31,6 +32,7 @@ import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.compose.action
 import com.ivianuu.essentials.compose.bind
 import com.ivianuu.essentials.permission.PermissionManager
+import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListKey
@@ -51,9 +53,13 @@ import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
-import com.ivianuu.injekt.common.typeKeyOf
 import kotlinx.coroutines.flow.first
 import kotlin.math.absoluteValue
+
+@Provide val dspAppColors = AppColors(
+  primary = Color(0xFFFC5C65),
+  secondary = Color(0xFFF7B731)
+)
 
 @Provide object HomeKey : RootKey
 

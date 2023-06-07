@@ -10,6 +10,7 @@ buildscript {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://plugins.gradle.org/m2")
     maven("https://jitpack.io")
+    maven("https://androidx.dev/storage/compose-compiler/repository")
   }
 
   dependencies {
@@ -25,5 +26,6 @@ allprojects {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://plugins.gradle.org/m2")
     maven("https://jitpack.io")
+    maven("https://androidx.dev/storage/compose-compiler/repository")
   }
 }
