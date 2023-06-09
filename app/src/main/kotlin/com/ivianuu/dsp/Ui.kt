@@ -44,7 +44,7 @@ import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.KeyUiContext
 import com.ivianuu.essentials.ui.navigation.Model
-import com.ivianuu.essentials.ui.navigation.ModelKeyUi
+import com.ivianuu.essentials.ui.navigation.KeyUi
 import com.ivianuu.essentials.ui.navigation.RootKey
 import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
@@ -63,7 +63,7 @@ import kotlin.math.absoluteValue
 
 @Provide object HomeKey : RootKey
 
-@Provide val homeUi = ModelKeyUi<HomeKey, HomeModel> {
+@Provide val homeUi = KeyUi<HomeKey, HomeModel> {
   Scaffold(
     topBar = {
       TopAppBar(
