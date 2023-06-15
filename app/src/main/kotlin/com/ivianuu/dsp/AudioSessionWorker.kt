@@ -232,6 +232,7 @@ class AudioSession(
   fun release() {
     logger.log { "$sessionId -> stop" }
     catch { jamesDSP.release() }
+      .onFailure { it.printStackTrace() }
   }
 
   private fun setParameterShort(parameter: Int, value: Short) {
