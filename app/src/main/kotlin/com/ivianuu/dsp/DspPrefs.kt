@@ -11,7 +11,8 @@ import kotlinx.serialization.Serializable
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
   val currentConfig: Config = Config(),
-  val configs: Map<String, Config> = mapOf("default" to Config())
+  val configs: Map<String, Config> = mapOf("default" to Config()),
+  val lastAudioSessionId: Int? = null
 ) {
   companion object {
     @Provide val prefModule = PrefModule { DspPrefs() }

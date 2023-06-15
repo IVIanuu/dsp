@@ -26,7 +26,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import com.ivianuu.essentials.backup.BackupAndRestoreKey
+import com.ivianuu.essentials.backup.BackupAndRestoreScreen
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.compose.action
@@ -35,17 +35,17 @@ import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.common.VerticalList
-import com.ivianuu.essentials.ui.dialog.ListKey
-import com.ivianuu.essentials.ui.dialog.TextInputKey
+import com.ivianuu.essentials.ui.dialog.ListScreen
+import com.ivianuu.essentials.ui.dialog.TextInputScreen
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.incrementingStepPolicy
-import com.ivianuu.essentials.ui.navigation.KeyUiContext
 import com.ivianuu.essentials.ui.navigation.Model
-import com.ivianuu.essentials.ui.navigation.KeyUi
-import com.ivianuu.essentials.ui.navigation.RootKey
+import com.ivianuu.essentials.ui.navigation.Navigator
+import com.ivianuu.essentials.ui.navigation.RootScreen
+import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
@@ -61,19 +61,19 @@ import kotlin.math.absoluteValue
   secondary = Color(0xFFF7B731)
 )
 
-@Provide object HomeKey : RootKey
+@Provide class HomeScreen : RootScreen
 
-@Provide val homeUi = KeyUi<HomeKey, HomeModel> {
+@Provide val homeUi = Ui<HomeScreen, HomeModel> { model ->
   Scaffold(
     topBar = {
       TopAppBar(
         title = { Text("DSP") },
         actions = {
           PopupMenuButton {
-            PopupMenuItem(onSelected = loadConfig) { Text("Load config") }
-            PopupMenuItem(onSelected = saveConfig) { Text("Save config") }
-            PopupMenuItem(onSelected = deleteConfig) { Text("Delete config") }
-            PopupMenuItem(onSelected = openBackupRestore) { Text("Backup and restore") }
+            PopupMenuItem(onSelected = model.loadConfig) { Text("Load config") }
+            PopupMenuItem(onSelected = model.saveConfig) { Text("Save config") }
+            PopupMenuItem(onSelected = model.deleteConfig) { Text("Delete config") }
+            PopupMenuItem(onSelected = model.openBackupRestore) { Text("Backup and restore") }
           }
         }
       )
@@ -82,8 +82,8 @@ import kotlin.math.absoluteValue
     VerticalList {
       item {
         SwitchListItem(
-          value = dspEnabled,
-          onValueChange = updateDspEnabled,
+          value = model.dspEnabled,
+          onValueChange = model.updateDspEnabled,
           title = { Text("DSP Enabled") }
         )
       }
@@ -93,9 +93,9 @@ import kotlin.math.absoluteValue
       }
 
       item {
-        Equalizer(eq = currentConfig.eq.toList()
+        Equalizer(eq = model.currentConfig.eq.toList()
           .sortedBy { it.first }
-          .toMap(), onBandChange = updateEqBand)
+          .toMap(), onBandChange = model.updateEqBand)
       }
 
       item {
@@ -105,9 +105,9 @@ import kotlin.math.absoluteValue
       item {
         val valueRange = 0f..BASS_BOOST_DB
         SliderListItem(
-          value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.bassBoost),
+          value = lerp(valueRange.start, valueRange.endInclusive, model.currentConfig.bassBoost),
           onValueChangeFinished = {
-            updateBassBoost(unlerp(valueRange.start, valueRange.endInclusive, it))
+            model.updateBassBoost(unlerp(valueRange.start, valueRange.endInclusive, it))
           },
           valueRange = valueRange,
           title = { Text("Bass boost") },
@@ -124,7 +124,8 @@ import kotlin.math.absoluteValue
   onBandChange: (Float, Float) -> Unit
 ) {
   HorizontalList(
-    contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
+    leftPaddingModifier = Modifier.width(16.dp),
+    rightPaddingModifier = Modifier.width(16.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp)
   ) {
     eq.forEach { (band, value) ->
@@ -241,9 +242,9 @@ data class HomeModel(
 
 @Provide fun homeModel(
   configRepository: ConfigRepository,
+  navigator: Navigator,
   permissionManager: PermissionManager,
-  pref: DataStore<DspPrefs>,
-  ctx: KeyUiContext<HomeKey>
+  pref: DataStore<DspPrefs>
 ) = Model {
   val prefs = pref.data.bind(DspPrefs())
 
@@ -269,8 +270,8 @@ data class HomeModel(
       configRepository.updateCurrentConfig(currentConfig.copy(bassBoost = value))
     },
     loadConfig = action {
-      val config = ctx.navigator.push(
-        ListKey(
+      val config = navigator.push(
+        ListScreen(
           items = configRepository.configs
             .first()
             .toList()
@@ -280,14 +281,14 @@ data class HomeModel(
       configRepository.updateCurrentConfig(config)
     },
     saveConfig = action {
-      val id = ctx.navigator.push(
-        TextInputKey(label = "Config id..")
+      val id = navigator.push(
+        TextInputScreen(label = "Config id..")
       ) ?: return@action
       configRepository.saveConfig(id, currentConfig)
     },
     deleteConfig = action {
-      val id = ctx.navigator.push(
-        ListKey(
+      val id = navigator.push(
+        ListScreen(
           items = configRepository.configs
             .first()
             .keys
@@ -296,6 +297,6 @@ data class HomeModel(
       ) ?: return@action
       configRepository.deleteConfig(id)
     },
-    openBackupRestore = action { ctx.navigator.push(BackupAndRestoreKey()) }
+    openBackupRestore = action { navigator.push(BackupAndRestoreScreen()) }
   )
 }

@@ -5,9 +5,9 @@
 package com.ivianuu.dsp
 
 import com.ivianuu.essentials.AppScope
+import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.injekt.Provide
-import com.ivianuu.injekt.common.Scoped
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
