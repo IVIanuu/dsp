@@ -115,6 +115,22 @@ import kotlin.math.absoluteValue
           valueText = { Text("${it.toInt()}db") }
         )
       }
+
+      item {
+        val valueRange = 0f..POST_GAIN_DB
+        SliderListItem(
+          value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.postGain),
+          onValueChange = {
+            updatePostGain(
+              unlerp(valueRange.start, valueRange.endInclusive, it)
+            )
+          },
+          valueRange = valueRange,
+          title = { Text("Post gain") },
+          stepPolicy = incrementingStepPolicy(1f),
+          valueText = { Text("${it.toInt()}db") }
+        )
+      }
     }
   }
 }
@@ -234,6 +250,7 @@ data class HomeModel(
   val currentConfig: Config,
   val updateEqBand: (Float, Float) -> Unit,
   val updateBassBoost: (Float) -> Unit,
+  val updatePostGain: (Float) -> Unit,
   val loadConfig: () -> Unit,
   val saveConfig: () -> Unit,
   val deleteConfig: () -> Unit,
@@ -268,6 +285,9 @@ data class HomeModel(
     },
     updateBassBoost = action { value ->
       configRepository.updateCurrentConfig(currentConfig.copy(bassBoost = value))
+    },
+    updatePostGain = action { value ->
+      configRepository.updateCurrentConfig(currentConfig.copy(postGain = value))
     },
     loadConfig = action {
       val config = navigator.push(
