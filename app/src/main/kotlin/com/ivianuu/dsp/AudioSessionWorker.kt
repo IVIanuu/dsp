@@ -70,7 +70,6 @@ import java.util.*
               PendingIntent.FLAG_IMMUTABLE
         )
       )
-      color = appColors.primary.toArgb()
     }
   ) {
     launchComposedEmitter(emitter = {}) {
