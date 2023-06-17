@@ -55,6 +55,7 @@ import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.first
 import kotlin.math.absoluteValue
+import kotlin.math.roundToInt
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -107,21 +108,23 @@ import kotlin.math.absoluteValue
 
       item {
         SliderListItem(
-          value = model.currentConfig.bassBoostDb,
-          onValueChangeFinished = model.updateBassBoost,
-          valueRange = BassBoostDbRange,
+          value = unlerp(BassBoostDbRange.first, BassBoostDbRange.last, model.currentConfig.bassBoostDb),
+          onValueChangeFinished = {
+            model.updateBassBoost(lerp(BassBoostDbRange.first, BassBoostDbRange.last, it))
+          },
           title = { Text("Bass boost") },
-          valueText = { Text("${it}db") }
+          valueText = { Text("${lerp(BassBoostDbRange.first, BassBoostDbRange.last, it)}db") }
         )
       }
 
       item {
         SliderListItem(
-          value = model.currentConfig.postGainDb,
-          onValueChange = model.updatePostGain,
-          valueRange = PostGainDbRange,
+          value = unlerp(PostGainDbRange.first, PostGainDbRange.last, model.currentConfig.postGainDb),
+          onValueChangeFinished = {
+            model.updatePostGain(lerp(PostGainDbRange.first, PostGainDbRange.last, it))
+          },
           title = { Text("Post gain") },
-          valueText = { Text("${it}db") }
+          valueText = { Text("${lerp(PostGainDbRange.first, PostGainDbRange.last, it)}db") }
         )
       }
     }
@@ -167,7 +170,9 @@ import kotlin.math.absoluteValue
 
           Spacer(Modifier.height(8.dp))
 
-          var internalValue by remember(value) { mutableStateOf(value) }
+          var internalValue by remember(value) {
+            mutableStateOf(unlerp(EqDbRange.first, EqDbRange.last, value))
+          }
 
           Layout(
             modifier = Modifier
@@ -176,10 +181,11 @@ import kotlin.math.absoluteValue
             content = {
               Slider(
                 modifier = Modifier.rotate(-90f),
-                value = value,
-                valueRange = EqDbRange,
+                value = internalValue,
                 onValueChange = { internalValue = it },
-                onValueChangeFinished = { onBandChange(band, internalValue) }
+                onValueChangeFinished = {
+                  onBandChange(band, lerp(EqDbRange.first, EqDbRange.last, internalValue))
+                }
               )
             }
           ) { measurables, constraints ->
@@ -197,7 +203,7 @@ import kotlin.math.absoluteValue
           Spacer(Modifier.height(8.dp))
 
           Text(
-            text = "${internalValue}db",
+            text = "${lerp(EqDbRange.first, EqDbRange.last, internalValue)}db",
             style = MaterialTheme.typography.caption
           )
         }
