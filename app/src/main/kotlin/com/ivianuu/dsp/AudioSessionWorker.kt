@@ -53,15 +53,6 @@ import java.util.*
   notificationFactory: NotificationFactory,
   pref: DataStore<DspPrefs>
 ) = ScopeWorker<AppScope> {
-  // reset eq pref
-  pref.updateData {
-    fun Config.fix() = copy(eq = EqBands.associateWith { band -> eq[band] ?: 0.5f })
-    copy(
-      currentConfig = currentConfig.fix(),
-      configs = configs.mapValues { it.value.fix() }
-    )
-  }
-
   foregroundManager.runInForeground(
     notificationFactory(
       "foreground",
@@ -208,12 +199,12 @@ class AudioSession(
     setParameterShort(1202, 1)
 
     // eq levels
-    val sortedEq = config.eq
+    val sortedEq = config.eqDb
       .toList()
       .sortedBy { it.first }
 
-    val eqLevels = (sortedEq.map { it.first } +
-        sortedEq.map { (_, value) -> lerp(-EQ_DB, EQ_DB, value) }).toFloatArray()
+    val eqLevels = (sortedEq.map { it.first.toFloat() } +
+        sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()
 
     logger.log { "eq levels ${eqLevels.contentToString()}" }
 
@@ -222,16 +213,16 @@ class AudioSession(
     // bass boost switch
     setParameterShort(
       1201,
-      if (config.bassBoost > 0) 1 else 0
+      if (config.bassBoostDb > 0) 1 else 0
     )
 
     // bass boost gain
-    setParameterShort(112, (BASS_BOOST_DB * config.bassBoost).toInt().toShort())
+    setParameterShort(112, config.bassBoostDb.toShort())
 
     // post gain
     setParameterFloatArray(
       1500,
-      floatArrayOf(-0.1f, 60f, POST_GAIN_DB * config.postGain)
+      floatArrayOf(-0.1f, 60f, config.postGainDb.toFloat())
     )
   }
 

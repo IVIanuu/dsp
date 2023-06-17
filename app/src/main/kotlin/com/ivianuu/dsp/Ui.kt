@@ -93,9 +93,12 @@ import kotlin.math.absoluteValue
       }
 
       item {
-        Equalizer(eq = model.currentConfig.eq.toList()
-          .sortedBy { it.first }
-          .toMap(), onBandChange = model.updateEqBand)
+        Equalizer(
+          eq = model.currentConfig.eqDb.toList()
+            .sortedBy { it.first }
+            .toMap(),
+          onBandChange = model.updateEqBand
+        )
       }
 
       item {
@@ -103,32 +106,22 @@ import kotlin.math.absoluteValue
       }
 
       item {
-        val valueRange = 0f..BASS_BOOST_DB
         SliderListItem(
-          value = lerp(valueRange.start, valueRange.endInclusive, model.currentConfig.bassBoost),
-          onValueChangeFinished = {
-            model.updateBassBoost(unlerp(valueRange.start, valueRange.endInclusive, it))
-          },
-          valueRange = valueRange,
+          value = model.currentConfig.bassBoostDb,
+          onValueChangeFinished = model.updateBassBoost,
+          valueRange = BassBoostDbRange,
           title = { Text("Bass boost") },
-          stepPolicy = incrementingStepPolicy(1f),
-          valueText = { Text("${it.toInt()}db") }
+          valueText = { Text("${it}db") }
         )
       }
 
       item {
-        val valueRange = 0f..POST_GAIN_DB
         SliderListItem(
-          value = lerp(valueRange.start, valueRange.endInclusive, currentConfig.postGain),
-          onValueChange = {
-            updatePostGain(
-              unlerp(valueRange.start, valueRange.endInclusive, it)
-            )
-          },
-          valueRange = valueRange,
+          value = model.currentConfig.postGainDb,
+          onValueChange = model.updatePostGain,
+          valueRange = PostGainDbRange,
           title = { Text("Post gain") },
-          stepPolicy = incrementingStepPolicy(1f),
-          valueText = { Text("${it.toInt()}db") }
+          valueText = { Text("${it}db") }
         )
       }
     }
@@ -136,8 +129,8 @@ import kotlin.math.absoluteValue
 }
 
 @Composable fun Equalizer(
-  eq: Map<Float, Float>,
-  onBandChange: (Float, Float) -> Unit
+  eq: Map<Int, Int>,
+  onBandChange: (Int, Int) -> Unit
 ) {
   HorizontalList(
     leftPaddingModifier = Modifier.width(16.dp),
@@ -155,18 +148,18 @@ import kotlin.math.absoluteValue
         ) {
           Text(
             text = when {
-              band < 1000 -> band.toInt().toString()
+              band < 1000 -> band.toString()
               band < 10000 -> {
-                if (band.toInt().toString().drop(1).all { it == '0' })
-                  band.toInt().toString()[0] + "k"
+                if (band.toString().drop(1).all { it == '0' })
+                  band.toString()[0] + "k"
                 else
-                  band.toInt().toString()[0] + "." + band.toInt().toString()[1] + "k"
+                  band.toString()[0] + "." + band.toString()[1] + "k"
               }
               else -> {
-                if (band.toInt().toString().drop(2).all { it == '0' })
-                  band.toInt().toString().take(2) + "k"
+                if (band.toString().drop(2).all { it == '0' })
+                  band.toString().take(2) + "k"
                 else
-                  band.toInt().toString().take(2) + "." + band.toInt().toString()[2] + "k"
+                  band.toString().take(2) + "." + band.toString()[2] + "k"
               }
             },
             style = MaterialTheme.typography.caption
@@ -174,18 +167,7 @@ import kotlin.math.absoluteValue
 
           Spacer(Modifier.height(8.dp))
 
-          val valueRange = -EQ_DB..EQ_DB
-          val stepPolicy = incrementingStepPolicy(1f)
-
-          var internalValue by remember(value) {
-            mutableStateOf(
-              lerp(
-                valueRange.start,
-                valueRange.endInclusive,
-                value
-              )
-            )
-          }
+          var internalValue by remember(value) { mutableStateOf(value) }
 
           Layout(
             modifier = Modifier
@@ -193,18 +175,11 @@ import kotlin.math.absoluteValue
               .fillMaxWidth(),
             content = {
               Slider(
-                modifier = Modifier
-                  .rotate(-90f),
-                value = internalValue,
-                valueRange = valueRange,
+                modifier = Modifier.rotate(-90f),
+                value = value,
+                valueRange = EqDbRange,
                 onValueChange = { internalValue = it },
-                onValueChangeFinished = {
-                  onBandChange(
-                    band,
-                    unlerp(valueRange.start, valueRange.endInclusive, internalValue)
-                  )
-                },
-                stepPolicy = stepPolicy
+                onValueChangeFinished = { onBandChange(band, internalValue) }
               )
             }
           ) { measurables, constraints ->
@@ -221,21 +196,8 @@ import kotlin.math.absoluteValue
 
           Spacer(Modifier.height(8.dp))
 
-          val steps = stepPolicy(valueRange)
-          val stepFractions = (if (steps == 0) emptyList()
-          else List(steps + 2) { it.toFloat() / (steps + 1) })
-          val stepValues = stepFractions
-            .map {
-              valueRange.start +
-                  ((valueRange.endInclusive - valueRange.start) * it)
-            }
-
-          val steppedValue = stepValues
-            .minByOrNull { (it - internalValue).absoluteValue }
-            ?: internalValue
-
           Text(
-            text = "${steppedValue.toInt()}db",
+            text = "${internalValue}db",
             style = MaterialTheme.typography.caption
           )
         }
@@ -248,9 +210,9 @@ data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
   val currentConfig: Config,
-  val updateEqBand: (Float, Float) -> Unit,
-  val updateBassBoost: (Float) -> Unit,
-  val updatePostGain: (Float) -> Unit,
+  val updateEqBand: (Int, Int) -> Unit,
+  val updateBassBoost: (Int) -> Unit,
+  val updatePostGain: (Int) -> Unit,
   val loadConfig: () -> Unit,
   val saveConfig: () -> Unit,
   val deleteConfig: () -> Unit,
@@ -277,17 +239,17 @@ data class HomeModel(
     updateEqBand = action { band, value ->
       configRepository.updateCurrentConfig(
         currentConfig.copy(
-          eq = currentConfig.eq.toMutableMap().apply {
+          eqDb = currentConfig.eqDb.toMutableMap().apply {
             put(band, value)
           }
         )
       )
     },
     updateBassBoost = action { value ->
-      configRepository.updateCurrentConfig(currentConfig.copy(bassBoost = value))
+      configRepository.updateCurrentConfig(currentConfig.copy(bassBoostDb = value))
     },
     updatePostGain = action { value ->
-      configRepository.updateCurrentConfig(currentConfig.copy(postGain = value))
+      configRepository.updateCurrentConfig(currentConfig.copy(postGainDb = value))
     },
     loadConfig = action {
       val config = navigator.push(
