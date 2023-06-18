@@ -25,9 +25,9 @@ import kotlinx.serialization.Serializable
   val postGainDb: Int = 0
 )
 
-val EqDbRange = -15..15
-val BassBoostDbRange = 0..15
-val PostGainDbRange = -15..15
+val EqValueRange = -15..15
+val BassBoostValueRange = 0..15
+val PostGainValueRange = -15..15
 
 val EqBands = listOf(
   40,

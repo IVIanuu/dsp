@@ -24,13 +24,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.backup.BackupAndRestoreScreen
 import com.ivianuu.essentials.data.DataStore
-import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.compose.action
+import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
@@ -105,23 +106,23 @@ import kotlinx.coroutines.flow.first
 
       item {
         SliderListItem(
-          value = unlerp(BassBoostDbRange.first, BassBoostDbRange.last, model.currentConfig.bassBoostDb),
+          value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.currentConfig.bassBoostDb),
           onValueChangeFinished = {
-            model.updateBassBoost(lerp(BassBoostDbRange.first, BassBoostDbRange.last, it))
+            model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
           },
           title = { Text("Bass boost") },
-          valueText = { Text("${lerp(BassBoostDbRange.first, BassBoostDbRange.last, it)}db") }
+          valueText = { Text("${lerp(BassBoostValueRange.first, BassBoostValueRange.last, it)}db") }
         )
       }
 
       item {
         SliderListItem(
-          value = unlerp(PostGainDbRange.first, PostGainDbRange.last, model.currentConfig.postGainDb),
+          value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.currentConfig.postGainDb),
           onValueChangeFinished = {
-            model.updatePostGain(lerp(PostGainDbRange.first, PostGainDbRange.last, it))
+            model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
           },
           title = { Text("Post gain") },
-          valueText = { Text("${lerp(PostGainDbRange.first, PostGainDbRange.last, it)}db") }
+          valueText = { Text("${lerp(PostGainValueRange.first, PostGainValueRange.last, it)}db") }
         )
       }
     }
@@ -167,7 +168,7 @@ import kotlinx.coroutines.flow.first
           Spacer(Modifier.height(8.dp))
 
           var internalValue by remember(value) {
-            mutableStateOf(unlerp(EqDbRange.first, EqDbRange.last, value))
+            mutableStateOf(unlerp(EqValueRange.first, EqValueRange.last, value))
           }
 
           Layout(
@@ -180,7 +181,7 @@ import kotlinx.coroutines.flow.first
                 value = internalValue,
                 onValueChange = { internalValue = it },
                 onValueChangeFinished = {
-                  onBandChange(band, lerp(EqDbRange.first, EqDbRange.last, internalValue))
+                  onBandChange(band, lerp(EqValueRange.first, EqValueRange.last, internalValue))
                 }
               )
             }
@@ -199,7 +200,7 @@ import kotlinx.coroutines.flow.first
           Spacer(Modifier.height(8.dp))
 
           Text(
-            text = "${lerp(EqDbRange.first, EqDbRange.last, internalValue)}db",
+            text = "${internalValue}db",
             style = MaterialTheme.typography.caption
           )
         }
