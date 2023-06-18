@@ -9,19 +9,18 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.graphics.toArgb
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.EsActivity
 import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
-import com.ivianuu.essentials.compose.bind
-import com.ivianuu.essentials.compose.launchComposedEmitter
+import com.ivianuu.essentials.compose.launchComposition
 import com.ivianuu.essentials.coroutines.guarantee
 import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
-import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.onFailure
@@ -72,18 +71,21 @@ import java.util.*
       )
     }
   ) {
-    launchComposedEmitter(emitter = {}) {
+    launchComposition(emitter = {}) {
       val enabled = pref.data
         .map { it.dspEnabled }
         .distinctUntilChanged()
         .onEach { println("dsp enabled changed $it") }
-        .bind(null) ?: return@launchComposedEmitter
+        .collectAsState(null)
+        .value ?: return@launchComposition
       val config = configRepository.currentConfig
         .onEach { println("config changed $it") }
-        .bind(null) ?: return@launchComposedEmitter
+        .collectAsState(null)
+        .value ?: return@launchComposition
       val audioSessions = audioSessions()
         .onEach { println("audio sessions changed $it") }
-        .bind(emptyMap())
+        .collectAsState(emptyMap())
+        .value
       LaunchedEffect(enabled, config, audioSessions) {
         audioSessions.values.parForEach { audioSession ->
           audioSession.apply(enabled, config)
@@ -207,7 +209,7 @@ class AudioSession(
 
     logger.log { "eq levels ${eqLevels.contentToString()}" }
 
-    setParameterFloatArray(116, floatArrayOf(-1f, -1f) + eqLevels)
+    setParameterFloatArray(116, floatArrayOf(-1f,  -1f) + eqLevels)
 
     // bass boost switch
     setParameterShort(
