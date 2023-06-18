@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,7 +31,6 @@ import com.ivianuu.essentials.backup.BackupAndRestoreScreen
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.compose.action
-import com.ivianuu.essentials.compose.bind
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
@@ -41,7 +41,6 @@ import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
-import com.ivianuu.essentials.ui.material.incrementingStepPolicy
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootScreen
@@ -54,8 +53,6 @@ import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.first
-import kotlin.math.absoluteValue
-import kotlin.math.roundToInt
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -136,8 +133,7 @@ import kotlin.math.roundToInt
   onBandChange: (Int, Int) -> Unit
 ) {
   HorizontalList(
-    leftPaddingModifier = Modifier.width(16.dp),
-    rightPaddingModifier = Modifier.width(16.dp),
+    contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp)
   ) {
     eq.forEach { (band, value) ->
@@ -231,9 +227,9 @@ data class HomeModel(
   permissionManager: PermissionManager,
   pref: DataStore<DspPrefs>
 ) = Model {
-  val prefs = pref.data.bind(DspPrefs())
+  val prefs by pref.data.collectAsState(DspPrefs())
 
-  val currentConfig = configRepository.currentConfig.bind(Config())
+  val currentConfig by configRepository.currentConfig.collectAsState(Config())
 
   HomeModel(
     dspEnabled = prefs.dspEnabled,
