@@ -11,7 +11,6 @@ import android.media.audiofx.AudioEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.remember
-import androidx.compose.ui.graphics.toArgb
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.EsActivity
@@ -37,7 +36,6 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -72,7 +70,7 @@ import java.util.*
       )
     }
   ) {
-    launchComposition(emitter = {}) {
+    launchComposition {
       val enabled = remember {
         pref.data
           .map { it.dspEnabled }
