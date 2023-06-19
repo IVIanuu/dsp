@@ -200,7 +200,7 @@ import kotlinx.coroutines.flow.first
           Spacer(Modifier.height(8.dp))
 
           Text(
-            text = "${internalValue}db",
+            text = "${lerp(EqValueRange.first, EqValueRange.last, internalValue)}db",
             style = MaterialTheme.typography.caption
           )
         }

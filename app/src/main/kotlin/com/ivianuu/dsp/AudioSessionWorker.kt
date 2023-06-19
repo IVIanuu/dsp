@@ -10,6 +10,7 @@ import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.toArgb
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
@@ -72,23 +73,23 @@ import java.util.*
     }
   ) {
     launchComposition(emitter = {}) {
-      val enabled = pref.data
-        .map { it.dspEnabled }
-        .distinctUntilChanged()
-        .onEach { println("dsp enabled changed $it") }
+      val enabled = remember {
+        pref.data
+          .map { it.dspEnabled }
+          .distinctUntilChanged()
+      }
         .collectAsState(null)
         .value ?: return@launchComposition
-      val config = configRepository.currentConfig
-        .onEach { println("config changed $it") }
+      val config = remember { configRepository.currentConfig }
         .collectAsState(null)
         .value ?: return@launchComposition
-      val audioSessions = audioSessions()
-        .onEach { println("audio sessions changed $it") }
+      val audioSessions = remember { audioSessions() }
         .collectAsState(emptyMap())
         .value
       LaunchedEffect(enabled, config, audioSessions) {
         audioSessions.values.parForEach { audioSession ->
-          audioSession.apply(enabled, config)
+          catch { audioSession.apply(enabled, config) }
+            .onFailure { it.printStackTrace() }
         }
       }
     }
