@@ -9,8 +9,8 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.remember
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.EsActivity
@@ -25,7 +25,6 @@ import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.onFailure
 import com.ivianuu.essentials.onSuccess
-import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
@@ -42,12 +41,10 @@ import java.nio.ByteOrder
 import java.util.*
 
 @Provide fun audioSessionWorker(
-  appColors: AppColors,
-  broadcastsFactory: BroadcastsFactory,
+  audioSessions: Flow<AudioSessions>,
   configRepository: ConfigRepository,
   context: AppContext,
   foregroundManager: ForegroundManager,
-  logger: Logger,
   notificationFactory: NotificationFactory,
   pref: DataStore<DspPrefs>
 ) = ScopeWorker<AppScope> {
@@ -71,21 +68,23 @@ import java.util.*
     }
   ) {
     launchComposition {
-      val enabled = remember {
+      val enabled by produceState(false) {
         pref.data
           .map { it.dspEnabled }
           .distinctUntilChanged()
+          .collect { value = it }
       }
-        .collectAsState(null)
-        .value ?: return@launchComposition
-      val config = remember { configRepository.currentConfig }
-        .collectAsState(null)
-        .value ?: return@launchComposition
-      val audioSessions = remember { audioSessions() }
-        .collectAsState(emptyMap())
-        .value
+
+      val config = produceState<Config?>(null) {
+        configRepository.currentConfig.collect { value = it }
+      }.value ?: return@launchComposition
+
+      val audioSessions by produceState(AudioSessions(emptyMap())) {
+        audioSessions.collect { value = it }
+      }
+
       LaunchedEffect(enabled, config, audioSessions) {
-        audioSessions.values.parForEach { audioSession ->
+        audioSessions.value.values.parForEach { audioSession ->
           catch { audioSession.apply(enabled, config) }
             .onFailure { it.printStackTrace() }
         }
@@ -96,11 +95,13 @@ import java.util.*
   }
 }
 
-private fun audioSessions(
-  @Inject broadcastsFactory: BroadcastsFactory,
-  @Inject logger: Logger,
-  @Inject audioSessionPref: DataStore<DspPrefs>
-): Flow<Map<Int, AudioSession>> = channelFlow {
+@JvmInline value class AudioSessions(val value: Map<Int, AudioSession>)
+
+@Provide fun audioSessions(
+  broadcastsFactory: BroadcastsFactory,
+  logger: Logger,
+  pref: DataStore<DspPrefs>
+): Flow<AudioSessions> = channelFlow {
   val audioSessions = mutableMapOf<Int, AudioSession>()
 
   guarantee(
@@ -117,7 +118,7 @@ private fun audioSessions(
           } to it.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, -1)
         }
         .onStart {
-          audioSessionPref.data.first().lastAudioSessionId
+          pref.data.first().lastAudioSessionId
             ?.let { emit(AudioSessionEvent.START to it) }
         }
         .collect { (event, sessionId) ->
@@ -136,10 +137,10 @@ private fun audioSessions(
 
               if (session != null) {
                 audioSessions[sessionId] = session!!
-                send(audioSessions.toMap())
-                audioSessionPref.updateData { copy(lastAudioSessionId = sessionId) }
+                send(AudioSessions(audioSessions.toMap()))
+                pref.updateData { copy(lastAudioSessionId = sessionId) }
               } else {
-                audioSessionPref.updateData {
+                pref.updateData {
                   copy(lastAudioSessionId = null)
                 }
               }
@@ -147,13 +148,13 @@ private fun audioSessions(
             AudioSessionEvent.STOP -> {
               audioSessions.remove(sessionId)
                 ?.also { it.release() }
-              audioSessionPref.updateData {
+              pref.updateData {
                 copy(
                   lastAudioSessionId = if (sessionId == lastAudioSessionId) null
                   else lastAudioSessionId
                 )
               }
-              send(audioSessions.toMap())
+              send(AudioSessions(audioSessions.toMap()))
             }
           }
         }
