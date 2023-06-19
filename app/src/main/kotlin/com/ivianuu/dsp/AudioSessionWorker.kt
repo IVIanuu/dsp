@@ -153,10 +153,7 @@ import java.util.*
   )
 }
 
-class AudioSession(
-  private val sessionId: Int,
-  @Inject val logger: Logger
-) {
+class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
   private val jamesDSP = try {
     AudioEffect::class.java.getConstructor(
       UUID::class.java,
@@ -171,10 +168,7 @@ class AudioSession(
     logger.log { "$sessionId -> start" }
   }
 
-  @Composable fun Apply(
-    enabled: Boolean,
-    config: Config
-  ) {
+  @Composable fun Apply(enabled: Boolean, config: Config) {
     LaunchedEffect(enabled) {
       logger.log { "$sessionId update enabled $enabled" }
       jamesDSP.enabled = enabled
