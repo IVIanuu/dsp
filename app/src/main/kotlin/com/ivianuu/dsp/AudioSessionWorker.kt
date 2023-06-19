@@ -9,8 +9,9 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.EsActivity
@@ -32,7 +33,6 @@ import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -41,7 +41,7 @@ import java.nio.ByteOrder
 import java.util.*
 
 @Provide fun audioSessionWorker(
-  audioSessions: Flow<AudioSessions>,
+  audioSessionsFlow: Flow<AudioSessions>,
   configRepository: ConfigRepository,
   context: AppContext,
   foregroundManager: ForegroundManager,
@@ -68,20 +68,13 @@ import java.util.*
     }
   ) {
     launchComposition {
-      val enabled by produceState(false) {
-        pref.data
-          .map { it.dspEnabled }
-          .distinctUntilChanged()
-          .collect { value = it }
-      }
+      val enabled by remember { pref.data.map { it.dspEnabled } }
+        .collectAsState(false)
 
-      val config = produceState<Config?>(null) {
-        configRepository.currentConfig.collect { value = it }
-      }.value ?: return@launchComposition
+      val config = configRepository.currentConfig
+        .collectAsState(null).value ?: return@launchComposition
 
-      val audioSessions by produceState(AudioSessions(emptyMap())) {
-        audioSessions.collect { value = it }
-      }
+      val audioSessions by audioSessionsFlow.collectAsState(AudioSessions(emptyMap()))
 
       LaunchedEffect(enabled, config, audioSessions) {
         audioSessions.value.values.parForEach { audioSession ->
@@ -170,10 +163,7 @@ class AudioSession(
       UUID::class.java, Integer.TYPE, Integer.TYPE
     ).newInstance(EFFECT_TYPE_CUSTOM, EFFECT_TYPE_JAMES_DSP, 0, sessionId)
   } catch (e: Throwable) {
-    // todo injekt bug
-    with(logger) {
-      logger.log { "$sessionId couln't create" }
-    }
+    logger.log { "$sessionId couln't create" }
     throw IllegalStateException("Couldn't create effect for $sessionId")
   }
 
