@@ -8,9 +8,11 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
@@ -19,7 +21,6 @@ import com.ivianuu.essentials.app.ScopeWorker
 import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.compose.launchComposition
 import com.ivianuu.essentials.coroutines.guarantee
-import com.ivianuu.essentials.coroutines.parForEach
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.logging.Logger
@@ -76,10 +77,9 @@ import java.util.*
 
       val audioSessions by audioSessionsFlow.collectAsState(AudioSessions(emptyMap()))
 
-      LaunchedEffect(enabled, config, audioSessions) {
-        audioSessions.value.values.parForEach { audioSession ->
-          catch { audioSession.apply(enabled, config) }
-            .onFailure { it.printStackTrace() }
+      audioSessions.value.forEach { audioSession ->
+        key(audioSession.key) {
+          audioSession.value.Apply(enabled, config)
         }
       }
     }
@@ -171,40 +171,57 @@ class AudioSession(
     logger.log { "$sessionId -> start" }
   }
 
-  suspend fun apply(enabled: Boolean, config: Config) {
-    logger.log { "$sessionId apply config -> enabled $enabled $config" }
+  @Composable fun Apply(
+    enabled: Boolean,
+    config: Config
+  ) {
+    LaunchedEffect(enabled) {
+      logger.log { "$sessionId update enabled $enabled" }
+      jamesDSP.enabled = enabled
+    }
 
-    jamesDSP.enabled = enabled
+    LaunchedEffect(true) {
+      // eq switch
+      setParameterShort(1202, 1)
+    }
 
-    // eq switch
-    setParameterShort(1202, 1)
+    LaunchedEffect(config.eqDb) {
+      // eq levels
+      val sortedEq = config.eqDb
+        .toList()
+        .sortedBy { it.first }
 
-    // eq levels
-    val sortedEq = config.eqDb
-      .toList()
-      .sortedBy { it.first }
+      val eqLevels = (sortedEq.map { it.first.toFloat() } +
+          sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()
 
-    val eqLevels = (sortedEq.map { it.first.toFloat() } +
-        sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()
+      logger.log { "$sessionId update eq ${eqLevels.contentToString()}" }
 
-    logger.log { "eq levels ${eqLevels.contentToString()}" }
-
-    setParameterFloatArray(116, floatArrayOf(-1f,  -1f) + eqLevels)
+      setParameterFloatArray(116, floatArrayOf(-1f,  -1f) + eqLevels)
+    }
 
     // bass boost switch
-    setParameterShort(
-      1201,
-      if (config.bassBoostDb > 0) 1 else 0
-    )
+    LaunchedEffect(true) {
+      setParameterShort(
+        1201,
+        if (config.bassBoostDb > 0) 1 else 0
+      )
+    }
 
     // bass boost gain
-    setParameterShort(112, config.bassBoostDb.toShort())
+    LaunchedEffect(config.bassBoostDb) {
+      logger.log { "$sessionId update bass boost ${config.bassBoostDb}" }
+      setParameterShort(112, config.bassBoostDb.toShort())
+    }
 
     // post gain
-    setParameterFloatArray(
-      1500,
-      floatArrayOf(-0.1f, 60f, config.postGainDb.toFloat())
-    )
+    LaunchedEffect(config.postGainDb) {
+      logger.log { "$sessionId update post gain ${config.bassBoostDb}" }
+
+      setParameterFloatArray(
+        1500,
+        floatArrayOf(-0.1f, 60f, config.postGainDb.toFloat())
+      )
+    }
   }
 
   fun release() {
