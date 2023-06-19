@@ -110,20 +110,14 @@ import java.util.*
         AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
         AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
       )
-        .map {
-          when (it.action) {
-            AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION -> AudioSessionEvent.START
-            AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION -> AudioSessionEvent.STOP
-            else -> throw AssertionError()
-          } to it.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, -1)
-        }
+        .map { it.action to it.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, -1) }
         .onStart {
           pref.data.first().lastAudioSessionId
-            ?.let { emit(AudioSessionEvent.START to it) }
+            ?.let { emit(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION to it) }
         }
         .collect { (event, sessionId) ->
           when (event) {
-            AudioSessionEvent.START -> {
+            AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION -> {
               var session: AudioSession? = null
               var attempt = 0
 
@@ -145,7 +139,7 @@ import java.util.*
                 }
               }
             }
-            AudioSessionEvent.STOP -> {
+            AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION -> {
               audioSessions.remove(sessionId)
                 ?.also { it.release() }
               pref.updateData {
@@ -164,10 +158,6 @@ import java.util.*
       audioSessions.values.forEach { it.release() }
     }
   )
-}
-
-private enum class AudioSessionEvent {
-  START, STOP
 }
 
 class AudioSession(
