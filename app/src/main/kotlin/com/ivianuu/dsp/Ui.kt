@@ -129,10 +129,7 @@ import kotlinx.coroutines.flow.first
   }
 }
 
-@Composable fun Equalizer(
-  eq: Map<Int, Int>,
-  onBandChange: (Int, Int) -> Unit
-) {
+@Composable fun Equalizer(eq: Map<Int, Int>, onBandChange: (Int, Int) -> Unit) {
   HorizontalList(
     contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp)
