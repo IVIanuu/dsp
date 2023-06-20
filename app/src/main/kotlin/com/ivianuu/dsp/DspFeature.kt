@@ -9,18 +9,19 @@ import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.EsActivity
-import com.ivianuu.essentials.app.ScopeWorker
+import com.ivianuu.essentials.app.ScopeComposition
 import com.ivianuu.essentials.catch
-import com.ivianuu.essentials.compose.launchComposition
-import com.ivianuu.essentials.coroutines.guarantee
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.logging.Logger
@@ -31,9 +32,6 @@ import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.awaitCancellation
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
@@ -42,14 +40,17 @@ import java.nio.ByteOrder
 import java.util.*
 
 @Provide fun audioSessionWorker(
-  audioSessionsFlow: Flow<AudioSessions>,
+  broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
   context: AppContext,
   foregroundManager: ForegroundManager,
+  logger: Logger,
   notificationFactory: NotificationFactory,
   pref: DataStore<DspPrefs>
-) = ScopeWorker<AppScope> {
-  foregroundManager.runInForeground(
+) = ScopeComposition<AppScope> {
+  val enabled by remember { pref.data.map { it.dspEnabled } }.collectAsState(false)
+
+  foregroundManager.Foreground {
     notificationFactory(
       "foreground",
       "Foreground",
@@ -67,93 +68,75 @@ import java.util.*
         )
       )
     }
-  ) {
-    launchComposition {
-      val enabled by remember { pref.data.map { it.dspEnabled } }
-        .collectAsState(false)
+  }
 
-      val config = configRepository.currentConfig
-        .collectAsState(null).value ?: return@launchComposition
+  var audioSessionIds by remember { mutableStateOf(listOf<Int>()) }
 
-      val audioSessions by audioSessionsFlow.collectAsState(AudioSessions(emptyMap()))
-
-      audioSessions.value.forEach { audioSession ->
-        key(audioSession.key) {
-          audioSession.value.Apply(enabled, config)
+  LaunchedEffect(true) {
+    broadcastsFactory(
+      AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
+      AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
+    )
+      .map { it.action to it.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, -1) }
+      .onStart {
+        pref.data.first().lastAudioSessionId
+          ?.let { emit(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION to it) }
+      }
+      .collect { (event, sessionId) ->
+        audioSessionIds = when (event) {
+          AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION -> audioSessionIds + sessionId
+          AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION -> audioSessionIds - sessionId
+          else -> audioSessionIds
         }
+      }
+  }
+
+  val audioSessions = audioSessionIds
+    .toList()
+    .mapNotNull { sessionId ->
+      key(sessionId) {
+        val session = remember {
+          var session: AudioSession? = null
+          var attempt = 0
+
+          while (session == null && attempt < 5) {
+            catch { AudioSession(sessionId) }
+              .onFailure { it.printStackTrace() }
+              .onSuccess { session = it }
+            attempt++
+          }
+
+          // this session seems to be broken
+          if (session == null)
+            audioSessionIds = audioSessionIds - sessionId
+
+          session
+        }
+
+        if (session != null)
+          LaunchedEffect(true) {
+            pref.updateData { copy(lastAudioSessionId = sessionId) }
+          }
+
+        session
       }
     }
 
-    awaitCancellation()
+  val config = configRepository.currentConfig.collectAsState(null).value
+    ?: return@ScopeComposition
+
+  audioSessions.forEach { audioSession ->
+    key(audioSession.sessionId) {
+      audioSession.Apply(enabled, config)
+
+      DisposableEffect(true) {
+        onDispose { audioSession.release() }
+      }
+    }
   }
 }
 
-@JvmInline value class AudioSessions(val value: Map<Int, AudioSession>)
-
-@Provide fun audioSessions(
-  broadcastsFactory: BroadcastsFactory,
-  logger: Logger,
-  pref: DataStore<DspPrefs>
-): Flow<AudioSessions> = channelFlow {
-  val audioSessions = mutableMapOf<Int, AudioSession>()
-
-  guarantee(
-    {
-      broadcastsFactory(
-        AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
-        AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
-      )
-        .map { it.action to it.getIntExtra(AudioEffect.EXTRA_AUDIO_SESSION, -1) }
-        .onStart {
-          pref.data.first().lastAudioSessionId
-            ?.let { emit(AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION to it) }
-        }
-        .collect { (event, sessionId) ->
-          when (event) {
-            AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION -> {
-              var session: AudioSession? = null
-              var attempt = 0
-
-              while (session == null && attempt < 5) {
-                catch { AudioSession(sessionId) }
-                  .onFailure { it.printStackTrace() }
-                  .onSuccess { session = it }
-
-                attempt++
-              }
-
-              if (session != null) {
-                audioSessions[sessionId] = session!!
-                send(AudioSessions(audioSessions.toMap()))
-                pref.updateData { copy(lastAudioSessionId = sessionId) }
-              } else {
-                pref.updateData {
-                  copy(lastAudioSessionId = null)
-                }
-              }
-            }
-            AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION -> {
-              audioSessions.remove(sessionId)
-                ?.also { it.release() }
-              pref.updateData {
-                copy(
-                  lastAudioSessionId = if (sessionId == lastAudioSessionId) null
-                  else lastAudioSessionId
-                )
-              }
-              send(AudioSessions(audioSessions.toMap()))
-            }
-          }
-        }
-    },
-    {
-      logger.log { "stop all sessions $audioSessions" }
-      audioSessions.values.forEach { it.release() }
-    }
-  )
-}
-
-class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
+class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
   private val jamesDSP = try {
     AudioEffect::class.java.getConstructor(
       UUID::class.java,
