@@ -194,7 +194,7 @@ class AudioSession(private val sessionId: Int, @Inject val logger: Logger) {
     }
 
     // bass boost switch
-    LaunchedEffect(true) {
+    LaunchedEffect(config.bassBoostDb > 0) {
       setParameterShort(
         1201,
         if (config.bassBoostDb > 0) 1 else 0
