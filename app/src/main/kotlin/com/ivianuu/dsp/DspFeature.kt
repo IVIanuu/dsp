@@ -39,7 +39,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
 
-@Provide fun audioSessionWorker(
+@Provide fun audioSessionFeature(
   broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
   context: AppContext,
