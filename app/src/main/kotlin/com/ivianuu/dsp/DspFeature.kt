@@ -71,7 +71,6 @@ import java.util.*
   }
 
   var audioSessionIds by remember { mutableStateOf(listOf<Int>()) }
-
   LaunchedEffect(true) {
     broadcastsFactory(
       AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
