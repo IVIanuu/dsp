@@ -92,7 +92,6 @@ import java.util.*
   }
 
   val audioSessions = audioSessionIds
-    .toList()
     .mapNotNull { sessionId ->
       key(sessionId) {
         val session = remember {
