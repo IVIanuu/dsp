@@ -21,13 +21,13 @@ import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.EsActivity
 import com.ivianuu.essentials.app.ScopeComposition
-import com.ivianuu.essentials.catch
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
-import com.ivianuu.essentials.onFailure
-import com.ivianuu.essentials.onSuccess
+import com.ivianuu.essentials.result.catch
+import com.ivianuu.essentials.result.onFailure
+import com.ivianuu.essentials.result.onSuccess
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
