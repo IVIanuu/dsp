@@ -4,17 +4,21 @@
 
 package com.ivianuu.dsp
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -24,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
@@ -38,6 +41,7 @@ import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListScreen
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
+import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
@@ -88,7 +92,27 @@ import kotlinx.coroutines.flow.first
       }
 
       item {
-        Subheader { Text("Equalizer") }
+        val contentColor = LocalContentColor.current
+        Subheader {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+          ) {
+            Text("Equalizer")
+
+            CompositionLocalProvider(LocalContentColor provides contentColor) {
+              PopupMenuButton {
+                PopupMenuItem(onSelected = model.updateEqFrequencies) {
+                  Text("Update frequencies")
+                }
+                PopupMenuItem(onSelected = model.resetEqFrequencies) {
+                  Text("Reset frequencies")
+                }
+              }
+            }
+          }
+        }
       }
 
       item {
@@ -211,6 +235,8 @@ data class HomeModel(
   val updateDspEnabled: (Boolean) -> Unit,
   val currentConfig: Config,
   val updateEqBand: (Int, Int) -> Unit,
+  val updateEqFrequencies: () -> Unit,
+  val resetEqFrequencies: () -> Unit,
   val updateBassBoost: (Int) -> Unit,
   val updatePostGain: (Int) -> Unit,
   val loadConfig: () -> Unit,
@@ -236,6 +262,34 @@ data class HomeModel(
         pref.updateData { copy(dspEnabled = value) }
     },
     currentConfig = currentConfig,
+    updateEqFrequencies = action {
+      val frequencies = navigator.push(
+        TextInputScreen(
+          initial = currentConfig.eqDb.keys.joinToString(",")
+        )
+      )
+        ?.split(",")
+        ?.mapNotNull { it.toIntOrNull() }
+        ?.takeIf { it.size == 15 }
+        ?: return@action
+
+      configRepository.updateCurrentConfig(
+        currentConfig.copy(
+          eqDb = frequencies.associateWith {
+            currentConfig.eqDb[it] ?: 0
+          }
+        )
+      )
+    },
+    resetEqFrequencies = action {
+      configRepository.updateCurrentConfig(
+        currentConfig.copy(
+          eqDb = EqBands.associateWith {
+            currentConfig.eqDb[it] ?: 0
+          }
+        )
+      )
+    },
     updateEqBand = action { band, value ->
       configRepository.updateCurrentConfig(
         currentConfig.copy(
