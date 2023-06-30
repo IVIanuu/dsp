@@ -460,8 +460,7 @@ data class HomeModel(
           items = configRepository.configs
             .first()
             .filterNot {
-              it.key == AudioDevice.Phone.id ||
-                  it.key == AudioDevice.Aux.id || it.key.contains(":")
+              it.key == AudioDevice.Phone.id || it.key.contains(":")
             }
             .toList()
             .sortedBy { it.first }
