@@ -10,8 +10,8 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
-  val currentConfig: Config = Config(),
   val configs: Map<String, Config> = mapOf("default" to Config()),
+  val selectedAudioDevices: Set<String> = emptySet(),
   val lastAudioSessionId: Int? = null
 ) {
   companion object {
@@ -23,6 +23,13 @@ import kotlinx.serialization.Serializable
   val eqDb: Map<Int, Int> = EqBands.associateWith { 0 },
   val bassBoostDb: Int = 0,
   val postGainDb: Int = 0
+)
+
+fun List<Config>.merge(): Config = if (size == 1) single()
+else Config(
+  eqDb = if (map { it.eqDb }.distinct().size == 1) first().eqDb else EqBands.associateWith { 0 },
+  bassBoostDb = map { it.bassBoostDb }.average().toInt(),
+  postGainDb = map { it.postGainDb }.average().toInt()
 )
 
 val EqValueRange = -15..15

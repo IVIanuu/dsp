@@ -33,13 +33,16 @@ import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
 
 @Provide fun audioSessionFeature(
+  audioDeviceRepository: AudioDeviceRepository,
   broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
   context: AppContext,
@@ -120,8 +123,12 @@ import java.util.*
       }
     }
 
-  val config = configRepository.currentConfig.collectAsState(null).value
-    ?: return@ScopeComposition
+  val config = remember {
+    audioDeviceRepository.currentAudioDevice
+      .onEach { logger.log { "current device changed $it" } }
+      .flatMapLatest { configRepository.config(it.id) }
+      .map { it ?: Config() }
+  }.collectAsState(null).value ?: return@ScopeComposition
 
   audioSessions.forEach { audioSession ->
     key(audioSession.sessionId) {
