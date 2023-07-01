@@ -28,7 +28,6 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +57,6 @@ import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListScreen
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
 import com.ivianuu.essentials.ui.material.Scaffold
-import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.material.guessingContentColorFor
@@ -251,17 +249,13 @@ import kotlinx.coroutines.flow.map
 
           Spacer(Modifier.height(8.dp))
 
+          var touchEndValue by remember { mutableStateOf(value) }
           var isTouching by remember { mutableStateOf(false) }
           var internalValue by remember {
             mutableStateOf(unlerp(EqValueRange.first, EqValueRange.last, value))
           }
-
-          if (isTouching)
-            DisposableEffect(true) {
-              onDispose {
-                internalValue = unlerp(EqValueRange.first, EqValueRange.last, value)
-              }
-            }
+          if (!isTouching && value != touchEndValue)
+            internalValue = unlerp(EqValueRange.first, EqValueRange.last, value)
 
           Layout(
             modifier = Modifier
@@ -276,7 +270,10 @@ import kotlinx.coroutines.flow.map
                   internalValue = it
                   onBandChange(band, lerp(EqValueRange.first, EqValueRange.last, internalValue))
                 },
-                onValueChangeFinished = { isTouching = false }
+                onValueChangeFinished = {
+                  touchEndValue = value
+                  isTouching = false
+                }
               )
             }
           ) { measurables, constraints ->
@@ -469,9 +466,7 @@ data class HomeModel(
         ListScreen(
           items = configRepository.configs
             .first()
-            .filterNot {
-              it.key == AudioDevice.Phone.id || it.key.contains(":")
-            }
+            .filterNot { it.key == AudioDevice.Phone.id || it.key.contains(":") }
             .toList()
             .sortedBy { it.first }
         ) { it.first }
@@ -492,6 +487,7 @@ data class HomeModel(
           items = configRepository.configs
             .first()
             .keys
+            .filterNot { it == AudioDevice.Phone.id || it.contains(":") }
             .sortedBy { it }
         )
       ) ?: return@action
