@@ -28,7 +28,6 @@ import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -69,6 +68,7 @@ import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
+import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.ui.resource.ResourceBox
 import com.ivianuu.essentials.unlerp
@@ -192,7 +192,7 @@ import kotlinx.coroutines.flow.map
           item {
             SliderListItem(
               value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.config.bassBoostDb),
-              onValueChange = {
+              onValueChangeFinished = {
                 model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
               },
               title = { Text("Bass boost") },
@@ -203,7 +203,7 @@ import kotlinx.coroutines.flow.map
           item {
             SliderListItem(
               value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.config.postGainDb),
-              onValueChange = {
+              onValueChangeFinished = {
                 model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
               },
               title = { Text("Post gain") },
@@ -251,17 +251,9 @@ import kotlinx.coroutines.flow.map
 
           Spacer(Modifier.height(8.dp))
 
-          var isTouching by remember { mutableStateOf(false) }
-          var internalValue by remember {
+          var internalValue by remember(value) {
             mutableStateOf(unlerp(EqValueRange.first, EqValueRange.last, value))
           }
-
-          if (isTouching)
-            DisposableEffect(true) {
-              onDispose {
-                internalValue = unlerp(EqValueRange.first, EqValueRange.last, value)
-              }
-            }
 
           Layout(
             modifier = Modifier
@@ -271,12 +263,10 @@ import kotlinx.coroutines.flow.map
               Slider(
                 modifier = Modifier.rotate(-90f),
                 value = internalValue,
-                onValueChange = {
-                  isTouching = true
-                  internalValue = it
+                onValueChange = { internalValue = it },
+                onValueChangeFinished = {
                   onBandChange(band, lerp(EqValueRange.first, EqValueRange.last, internalValue))
-                },
-                onValueChangeFinished = { isTouching = false }
+                }
               )
             }
           ) { measurables, constraints ->
