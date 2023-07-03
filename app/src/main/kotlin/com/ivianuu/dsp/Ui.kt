@@ -22,8 +22,10 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
@@ -55,7 +57,9 @@ import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -262,17 +266,14 @@ data class HomeModel(
   val currentAudioDevice by audioDeviceRepository.currentAudioDevice
     .collectAsState(AudioDevice.Phone)
 
-  val config = prefs.configs[currentAudioDevice.id] ?: DspConfig()
+  val config by produceState(DspConfig()) {
+    snapshotFlow { currentAudioDevice }
+      .flatMapLatest { configRepository.config(it.id) }
+      .collect { value = it ?: DspConfig() }
+  }
 
   suspend fun updateConfig(block: DspConfig.() -> DspConfig) {
-    pref.updateData {
-      copy(
-        configs = buildMap {
-          putAll(configs)
-          put(currentAudioDevice.id, block(prefs.configs[currentAudioDevice.id] ?: DspConfig()))
-        }
-      )
-    }
+    configRepository.updateConfig(currentAudioDevice.id, config.block())
   }
 
   HomeModel(
@@ -292,14 +293,10 @@ data class HomeModel(
         ?.takeIf { it.size == 15 }
         ?: return@action
 
-      updateConfig {
-        copy(eqDb = frequencies.associateWith { eqDb[it] ?: 0 })
-      }
+      updateConfig { copy(eqDb = frequencies.associateWith { eqDb[it] ?: 0 }) }
     },
     resetEqFrequencies = action {
-      updateConfig {
-        copy(eqDb = EqBands.associateWith { eqDb[it] ?: 0 })
-      }
+      updateConfig { copy(eqDb = EqBands.associateWith { eqDb[it] ?: 0 }) }
     },
     updateEqBand = action { band, value ->
       updateConfig {
@@ -324,7 +321,7 @@ data class HomeModel(
             .sortedBy { it.first }
         ) { it.first }
       )?.second ?: return@action
-      configRepository.updateConfig(currentAudioDevice.id, newConfig)
+      updateConfig { newConfig }
     },
     saveConfig = action {
       val id = navigator.push(
