@@ -4,7 +4,6 @@
 
 package com.ivianuu.dsp
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.material.ContentAlpha
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -36,12 +36,14 @@ import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.compose.action
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.permission.PermissionManager
+import com.ivianuu.essentials.resource.collectAsResourceState
+import com.ivianuu.essentials.resource.getOrElse
+import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListScreen
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
-import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
@@ -55,9 +57,12 @@ import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
+import com.ivianuu.essentials.ui.resource.ResourceBox
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -70,7 +75,14 @@ import kotlinx.coroutines.flow.first
   Scaffold(
     topBar = {
       TopAppBar(
-        title = { Text("DSP") },
+        title = {
+          Text("DSP")
+          Text(
+            text = model.currentAudioDevice.name,
+            style = MaterialTheme.typography.body2,
+            color = LocalContentColor.current.copy(alpha = ContentAlpha.medium)
+          )
+        },
         actions = {
           PopupMenuButton {
             PopupMenuItem(onSelected = model.loadConfig) { Text("Load config") }
@@ -117,7 +129,7 @@ import kotlinx.coroutines.flow.first
 
       item {
         Equalizer(
-          eq = model.currentConfig.eqDb.toList()
+          eq = model.config.eqDb.toList()
             .sortedBy { it.first }
             .toMap(),
           onBandChange = model.updateEqBand
@@ -130,7 +142,7 @@ import kotlinx.coroutines.flow.first
 
       item {
         SliderListItem(
-          value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.currentConfig.bassBoostDb),
+          value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.config.bassBoostDb),
           onValueChangeFinished = {
             model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
           },
@@ -141,7 +153,7 @@ import kotlinx.coroutines.flow.first
 
       item {
         SliderListItem(
-          value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.currentConfig.postGainDb),
+          value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.config.postGainDb),
           onValueChangeFinished = {
             model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
           },
@@ -233,7 +245,8 @@ import kotlinx.coroutines.flow.first
 data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
-  val currentConfig: Config,
+  val currentAudioDevice: AudioDevice,
+  val config: DspConfig,
   val updateEqBand: (Int, Int) -> Unit,
   val updateEqFrequencies: () -> Unit,
   val resetEqFrequencies: () -> Unit,
@@ -246,6 +259,7 @@ data class HomeModel(
 )
 
 @Provide fun homeModel(
+  audioDeviceRepository: AudioDeviceRepository,
   configRepository: ConfigRepository,
   navigator: Navigator,
   permissionManager: PermissionManager,
@@ -253,7 +267,21 @@ data class HomeModel(
 ) = Model {
   val prefs by pref.data.collectAsState(DspPrefs())
 
-  val currentConfig by configRepository.currentConfig.collectAsState(Config())
+  val currentAudioDevice by audioDeviceRepository.currentAudioDevice
+    .collectAsState(AudioDevice.Phone)
+
+  val config = prefs.configs[currentAudioDevice.id] ?: DspConfig()
+
+  suspend fun updateConfig(block: DspConfig.() -> DspConfig) {
+    pref.updateData {
+      copy(
+        configs = buildMap {
+          putAll(configs)
+          put(currentAudioDevice.id, block(prefs.configs[currentAudioDevice.id] ?: DspConfig()))
+        }
+      )
+    }
+  }
 
   HomeModel(
     dspEnabled = prefs.dspEnabled,
@@ -261,66 +289,56 @@ data class HomeModel(
       if (!value || permissionManager.requestPermissions(dspPermissions))
         pref.updateData { copy(dspEnabled = value) }
     },
-    currentConfig = currentConfig,
+    currentAudioDevice = currentAudioDevice,
+    config = config,
     updateEqFrequencies = action {
       val frequencies = navigator.push(
-        TextInputScreen(
-          initial = currentConfig.eqDb.keys.joinToString(",")
-        )
+        TextInputScreen(initial = config.eqDb.keys.joinToString(","))
       )
         ?.split(",")
         ?.mapNotNull { it.toIntOrNull() }
         ?.takeIf { it.size == 15 }
         ?: return@action
 
-      configRepository.updateCurrentConfig(
-        currentConfig.copy(
-          eqDb = frequencies.associateWith {
-            currentConfig.eqDb[it] ?: 0
-          }
-        )
-      )
+      updateConfig {
+        copy(eqDb = frequencies.associateWith { eqDb[it] ?: 0 })
+      }
     },
     resetEqFrequencies = action {
-      configRepository.updateCurrentConfig(
-        currentConfig.copy(
-          eqDb = EqBands.associateWith {
-            currentConfig.eqDb[it] ?: 0
-          }
-        )
-      )
+      updateConfig {
+        copy(eqDb = EqBands.associateWith { eqDb[it] ?: 0 })
+      }
     },
     updateEqBand = action { band, value ->
-      configRepository.updateCurrentConfig(
-        currentConfig.copy(
-          eqDb = currentConfig.eqDb.toMutableMap().apply {
-            put(band, value)
-          }
-        )
-      )
+      updateConfig {
+        copy(eqDb = eqDb.toMutableMap().apply { put(band, value) })
+      }
     },
     updateBassBoost = action { value ->
-      configRepository.updateCurrentConfig(currentConfig.copy(bassBoostDb = value))
+      updateConfig { copy(bassBoostDb = value) }
     },
     updatePostGain = action { value ->
-      configRepository.updateCurrentConfig(currentConfig.copy(postGainDb = value))
+      updateConfig { copy(postGainDb = value) }
     },
     loadConfig = action {
-      val config = navigator.push(
+      val newConfig = navigator.push(
         ListScreen(
           items = configRepository.configs
             .first()
+            .filterNot {
+              it.key == AudioDevice.Phone.id || it.key.contains(":")
+            }
             .toList()
             .sortedBy { it.first }
         ) { it.first }
       )?.second ?: return@action
-      configRepository.updateCurrentConfig(config)
+      configRepository.updateConfig(currentAudioDevice.id, newConfig)
     },
     saveConfig = action {
       val id = navigator.push(
         TextInputScreen(label = "Config id..")
       ) ?: return@action
-      configRepository.saveConfig(id, currentConfig)
+      configRepository.updateConfig(id, config)
     },
     deleteConfig = action {
       val id = navigator.push(
@@ -328,6 +346,7 @@ data class HomeModel(
           items = configRepository.configs
             .first()
             .keys
+            .filterNot { it == AudioDevice.Phone.id || it.contains(":") }
             .sortedBy { it }
         )
       ) ?: return@action

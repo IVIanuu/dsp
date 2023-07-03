@@ -10,8 +10,7 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class DspPrefs(
   val dspEnabled: Boolean = false,
-  val currentConfig: Config = Config(),
-  val configs: Map<String, Config> = mapOf("default" to Config()),
+  val configs: Map<String, DspConfig> = mapOf("default" to DspConfig()),
   val lastAudioSessionId: Int? = null
 ) {
   companion object {
@@ -19,7 +18,7 @@ import kotlinx.serialization.Serializable
   }
 }
 
-@Serializable data class Config(
+@Serializable data class DspConfig(
   val eqDb: Map<Int, Int> = EqBands.associateWith { 0 },
   val bassBoostDb: Int = 0,
   val postGainDb: Int = 0
