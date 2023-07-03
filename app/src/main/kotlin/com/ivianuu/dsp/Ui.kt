@@ -44,6 +44,7 @@ import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListScreen
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
 import com.ivianuu.essentials.ui.material.Scaffold
+import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.navigation.Model
@@ -53,6 +54,7 @@ import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
+import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
@@ -140,23 +142,21 @@ import kotlinx.coroutines.flow.map
 
       item {
         SliderListItem(
-          value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.config.bassBoostDb),
-          onValueChange = {
-            model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
-          },
+          value = model.config.bassBoostDb,
+          onValueChange = model.updateBassBoost,
+          valueRange = BassBoostValueRange,
           title = { Text("Bass boost") },
-          valueText = { Text("${lerp(BassBoostValueRange.first, BassBoostValueRange.last, it)}db") }
+          valueText = { Text("${it}db") }
         )
       }
 
       item {
         SliderListItem(
-          value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.config.postGainDb),
-          onValueChange = {
-            model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
-          },
+          value = model.config.postGainDb,
+          onValueChange = model.updatePostGain,
+          valueRange = PostGainValueRange,
           title = { Text("Post gain") },
-          valueText = { Text("${lerp(PostGainValueRange.first, PostGainValueRange.last, it)}db") }
+          valueText = { Text("${it}db") }
         )
       }
     }

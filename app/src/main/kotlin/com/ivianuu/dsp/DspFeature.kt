@@ -55,23 +55,25 @@ import java.util.*
 ) = ScopeComposition<AppScope> {
   val enabled by remember { pref.data.map { it.dspEnabled } }.collectAsState(false)
 
-  foregroundManager.Foreground {
-    notificationFactory(
-      "foreground",
-      "Foreground",
-      NotificationManager.IMPORTANCE_LOW
-    ) {
-      setContentTitle("DSP")
-      setSmallIcon(R.drawable.ic_graphic_eq)
-      setContentIntent(
-        PendingIntent.getActivity(
-          context,
-          1,
-          Intent(context, EsActivity::class.java),
-          PendingIntent.FLAG_UPDATE_CURRENT or
-              PendingIntent.FLAG_IMMUTABLE
+  LaunchedEffect(true) {
+    foregroundManager.startForeground {
+      notificationFactory(
+        "foreground",
+        "Foreground",
+        NotificationManager.IMPORTANCE_LOW
+      ) {
+        setContentTitle("DSP")
+        setSmallIcon(R.drawable.ic_graphic_eq)
+        setContentIntent(
+          PendingIntent.getActivity(
+            context,
+            1,
+            Intent(context, EsActivity::class.java),
+            PendingIntent.FLAG_UPDATE_CURRENT or
+                PendingIntent.FLAG_IMMUTABLE
+          )
         )
-      )
+      }
     }
   }
 
@@ -185,12 +187,7 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
     }
 
     // bass boost switch
-    LaunchedEffect(config.bassBoostDb > 0) {
-      setParameterShort(
-        1201,
-        if (config.bassBoostDb > 0) 1 else 0
-      )
-    }
+    LaunchedEffect(true) { setParameterShort(1201, 1) }
 
     // bass boost gain
     LaunchedEffect(config.bassBoostDb) {
