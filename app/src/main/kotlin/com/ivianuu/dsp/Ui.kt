@@ -60,6 +60,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -261,8 +262,6 @@ data class HomeModel(
   permissionManager: PermissionManager,
   pref: DataStore<DspPrefs>
 ) = Model {
-  val prefs by pref.data.collectAsState(DspPrefs())
-
   val currentAudioDevice by audioDeviceRepository.currentAudioDevice
     .collectAsState(AudioDevice.Phone)
 
@@ -277,7 +276,8 @@ data class HomeModel(
   }
 
   HomeModel(
-    dspEnabled = prefs.dspEnabled,
+    dspEnabled = remember { pref.data.map { it.dspEnabled } }
+      .collectAsState(false).value,
     updateDspEnabled = action { value ->
       if (!value || permissionManager.requestPermissions(dspPermissions))
         pref.updateData { copy(dspEnabled = value) }
