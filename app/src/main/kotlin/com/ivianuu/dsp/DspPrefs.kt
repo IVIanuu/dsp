@@ -20,13 +20,11 @@ import kotlinx.serialization.Serializable
 
 @Serializable data class DspConfig(
   val eqDb: Map<Int, Int> = EqBands.associateWith { 0 },
-  val bassBoostDb: Int = 0,
-  val postGainDb: Int = 0
+  val bassBoostDb: Int = 0
 )
 
 val EqValueRange = -15..15
 val BassBoostValueRange = 0..15
-val PostGainValueRange = -15..15
 
 val EqBands = listOf(
   40,

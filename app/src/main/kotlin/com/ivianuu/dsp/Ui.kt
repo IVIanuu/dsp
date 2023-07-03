@@ -149,16 +149,6 @@ import kotlinx.coroutines.flow.map
           valueText = { Text("${it}db") }
         )
       }
-
-      item {
-        SliderListItem(
-          value = model.config.postGainDb,
-          onValueChange = model.updatePostGain,
-          valueRange = PostGainValueRange,
-          title = { Text("Post gain") },
-          valueText = { Text("${it}db") }
-        )
-      }
     }
   }
 }
@@ -248,7 +238,6 @@ data class HomeModel(
   val updateEqFrequencies: () -> Unit,
   val resetEqFrequencies: () -> Unit,
   val updateBassBoost: (Int) -> Unit,
-  val updatePostGain: (Int) -> Unit,
   val loadConfig: () -> Unit,
   val saveConfig: () -> Unit,
   val deleteConfig: () -> Unit,
@@ -305,9 +294,6 @@ data class HomeModel(
     },
     updateBassBoost = action { value ->
       updateConfig { copy(bassBoostDb = value) }
-    },
-    updatePostGain = action { value ->
-      updateConfig { copy(postGainDb = value) }
     },
     loadConfig = action {
       val newConfig = navigator.push(

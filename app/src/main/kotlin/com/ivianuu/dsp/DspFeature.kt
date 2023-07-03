@@ -194,16 +194,6 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
       logger.log { "$sessionId update bass boost ${config.bassBoostDb}" }
       setParameterShort(112, config.bassBoostDb.toShort())
     }
-
-    // post gain
-    LaunchedEffect(config.postGainDb) {
-      logger.log { "$sessionId update post gain ${config.bassBoostDb}" }
-
-      setParameterFloatArray(
-        1500,
-        floatArrayOf(-0.1f, 60f, config.postGainDb.toFloat())
-      )
-    }
   }
 
   fun release() {
