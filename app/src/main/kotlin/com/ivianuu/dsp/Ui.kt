@@ -482,6 +482,7 @@ data class HomeModel(
           items = configRepository.configs
             .first()
             .keys
+            .filterNot { it == AudioDevice.Phone.id || it.contains(":") }
             .sortedBy { it }
         )
       ) ?: return@action
