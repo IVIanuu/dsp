@@ -36,16 +36,12 @@ import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.compose.action
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.permission.PermissionManager
-import com.ivianuu.essentials.resource.collectAsResourceState
-import com.ivianuu.essentials.resource.getOrElse
-import com.ivianuu.essentials.resource.getOrNull
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.common.VerticalList
 import com.ivianuu.essentials.ui.dialog.ListScreen
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
 import com.ivianuu.essentials.ui.material.Scaffold
-import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.navigation.Model
@@ -55,14 +51,11 @@ import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.navigation.push
 import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
-import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
-import com.ivianuu.essentials.ui.resource.ResourceBox
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.map
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -143,7 +136,7 @@ import kotlinx.coroutines.flow.map
       item {
         SliderListItem(
           value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.config.bassBoostDb),
-          onValueChangeFinished = {
+          onValueChange = {
             model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
           },
           title = { Text("Bass boost") },
@@ -154,7 +147,7 @@ import kotlinx.coroutines.flow.map
       item {
         SliderListItem(
           value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.config.postGainDb),
-          onValueChangeFinished = {
+          onValueChange = {
             model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
           },
           title = { Text("Post gain") },
@@ -200,9 +193,7 @@ import kotlinx.coroutines.flow.map
 
           Spacer(Modifier.height(8.dp))
 
-          var internalValue by remember(value) {
-            mutableStateOf(unlerp(EqValueRange.first, EqValueRange.last, value))
-          }
+          var internalValue by remember(value) { mutableStateOf(value) }
 
           Layout(
             modifier = Modifier
@@ -211,11 +202,12 @@ import kotlinx.coroutines.flow.map
             content = {
               Slider(
                 modifier = Modifier.rotate(-90f),
-                value = internalValue,
-                onValueChange = { internalValue = it },
-                onValueChangeFinished = {
-                  onBandChange(band, lerp(EqValueRange.first, EqValueRange.last, internalValue))
-                }
+                value = value,
+                onValueChange = {
+                  internalValue = it
+                  onBandChange(band, it)
+                },
+                valueRange = EqValueRange
               )
             }
           ) { measurables, constraints ->
@@ -233,7 +225,7 @@ import kotlinx.coroutines.flow.map
           Spacer(Modifier.height(8.dp))
 
           Text(
-            text = "${lerp(EqValueRange.first, EqValueRange.last, internalValue)}db",
+            text = "${internalValue}db",
             style = MaterialTheme.typography.caption
           )
         }
