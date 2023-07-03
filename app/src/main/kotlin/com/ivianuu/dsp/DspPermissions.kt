@@ -29,4 +29,3 @@ val dspPermissions = listOf(
 ) = PermissionRevokeHandler(dspPermissions) {
   pref.updateData { copy(dspEnabled = false) }
 }
-

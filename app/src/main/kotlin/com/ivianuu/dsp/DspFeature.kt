@@ -15,6 +15,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppContext
@@ -32,6 +33,7 @@ import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -123,12 +125,13 @@ import java.util.*
       }
     }
 
-  val config = remember {
+  val config = produceState<DspConfig?>(null) {
     audioDeviceRepository.currentAudioDevice
       .onEach { logger.log { "current device changed $it" } }
       .flatMapLatest { configRepository.config(it.id) }
-      .map { it ?: Config() }
-  }.collectAsState(null).value ?: return@ScopeComposition
+      .map { it ?: DspConfig() }
+      .collect { value = it }
+  }.value ?: return@ScopeComposition
 
   audioSessions.forEach { audioSession ->
     key(audioSession.sessionId) {
@@ -156,7 +159,7 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
     logger.log { "$sessionId -> start" }
   }
 
-  @Composable fun Apply(enabled: Boolean, config: Config) {
+  @Composable fun Apply(enabled: Boolean, config: DspConfig) {
     LaunchedEffect(enabled) {
       logger.log { "$sessionId update enabled $enabled" }
       jamesDSP.enabled = enabled

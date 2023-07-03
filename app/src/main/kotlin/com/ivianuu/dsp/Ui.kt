@@ -4,13 +4,7 @@
 
 package com.ivianuu.dsp
 
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.LocalIndication
-import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -19,12 +13,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.ContentAlpha
 import androidx.compose.material.LocalContentColor
-import androidx.compose.material.LocalTextStyle
 import androidx.compose.material.MaterialTheme
-import androidx.compose.material.Surface
 import androidx.compose.material.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,19 +26,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
-import com.google.accompanist.flowlayout.FlowRow
 import com.ivianuu.essentials.backup.BackupAndRestoreScreen
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.compose.action
 import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.permission.PermissionManager
-import com.ivianuu.essentials.resource.Resource
 import com.ivianuu.essentials.resource.collectAsResourceState
 import com.ivianuu.essentials.resource.getOrElse
 import com.ivianuu.essentials.resource.getOrNull
@@ -60,7 +48,6 @@ import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
 import com.ivianuu.essentials.ui.material.TopAppBar
-import com.ivianuu.essentials.ui.material.guessingContentColorFor
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootScreen
@@ -88,7 +75,14 @@ import kotlinx.coroutines.flow.map
   Scaffold(
     topBar = {
       TopAppBar(
-        title = { Text("DSP") },
+        title = {
+          Text("DSP")
+          Text(
+            text = model.currentAudioDevice.name,
+            style = MaterialTheme.typography.body2,
+            color = LocalContentColor.current.copy(alpha = ContentAlpha.medium)
+          )
+        },
         actions = {
           PopupMenuButton {
             PopupMenuItem(onSelected = model.loadConfig) { Text("Load config") }
@@ -100,117 +94,72 @@ import kotlinx.coroutines.flow.map
       )
     }
   ) {
-    ResourceBox(model.audioDevices) { audioDevices ->
-      VerticalList {
-        item {
-          SwitchListItem(
-            value = model.dspEnabled,
-            onValueChange = model.updateDspEnabled,
-            title = { Text("DSP Enabled") }
-          )
-        }
+    VerticalList {
+      item {
+        SwitchListItem(
+          value = model.dspEnabled,
+          onValueChange = model.updateDspEnabled,
+          title = { Text("DSP Enabled") }
+        )
+      }
 
-        item {
-          FlowRow(
-            modifier = Modifier
-              .padding(8.dp),
-            mainAxisSpacing = 8.dp,
-            crossAxisSpacing = 8.dp
+      item {
+        val contentColor = LocalContentColor.current
+        Subheader {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
           ) {
-            val allAudioDevices = model.audioDevices.getOrNull()
-              ?.map { it.id }
-              ?.toSet() ?: emptySet()
+            Text("Equalizer")
 
-            AudioDeviceChip(
-              selected = allAudioDevices.all { it in model.selectedAudioDevices },
-              active = true,
-              onClick = model.toggleAllAudioDevicesSelections,
-              onLongClick = null
-            ) {
-              Text("ALL")
-            }
-
-            audioDevices
-              .sortedBy { it.name.lowercase() }
-              .sortedByDescending { it.id in model.connectedAudioDevices }
-              .sortedByDescending { it == model.currentAudioDevice }
-              .forEach { audioDevice ->
-                AudioDeviceChip(
-                  selected = audioDevice.id in model.selectedAudioDevices,
-                  active = audioDevice == model.currentAudioDevice,
-                  onClick = { model.toggleAudioDeviceSelection(audioDevice, false) },
-                  onLongClick = { model.toggleAudioDeviceSelection(audioDevice, true) }
-                ) {
-                  Text(audioDevice.name)
+            CompositionLocalProvider(LocalContentColor provides contentColor) {
+              PopupMenuButton {
+                PopupMenuItem(onSelected = model.updateEqFrequencies) {
+                  Text("Update frequencies")
                 }
-              }
-          }
-        }
-
-        if (model.selectedAudioDevices.isEmpty()) {
-          item {
-            Text("Select a audio device to edit")
-          }
-        } else {
-          item {
-            val contentColor = LocalContentColor.current
-            Subheader {
-              Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-              ) {
-                Text("Equalizer")
-
-                CompositionLocalProvider(LocalContentColor provides contentColor) {
-                  PopupMenuButton {
-                    PopupMenuItem(onSelected = model.updateEqFrequencies) {
-                      Text("Update frequencies")
-                    }
-                    PopupMenuItem(onSelected = model.resetEqFrequencies) {
-                      Text("Reset frequencies")
-                    }
-                  }
+                PopupMenuItem(onSelected = model.resetEqFrequencies) {
+                  Text("Reset frequencies")
                 }
               }
             }
           }
-
-          item {
-            Equalizer(
-              eq = model.config.eqDb.toList()
-                .sortedBy { it.first }
-                .toMap(),
-              onBandChange = model.updateEqBand
-            )
-          }
-
-          item {
-            Subheader { Text("Other") }
-          }
-
-          item {
-            SliderListItem(
-              value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.config.bassBoostDb),
-              onValueChangeFinished = {
-                model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
-              },
-              title = { Text("Bass boost") },
-              valueText = { Text("${lerp(BassBoostValueRange.first, BassBoostValueRange.last, it)}db") }
-            )
-          }
-
-          item {
-            SliderListItem(
-              value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.config.postGainDb),
-              onValueChangeFinished = {
-                model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
-              },
-              title = { Text("Post gain") },
-              valueText = { Text("${lerp(PostGainValueRange.first, PostGainValueRange.last, it)}db") }
-            )
-          }
         }
+      }
+
+      item {
+        Equalizer(
+          eq = model.config.eqDb.toList()
+            .sortedBy { it.first }
+            .toMap(),
+          onBandChange = model.updateEqBand
+        )
+      }
+
+      item {
+        Subheader { Text("Other") }
+      }
+
+      item {
+        SliderListItem(
+          value = unlerp(BassBoostValueRange.first, BassBoostValueRange.last, model.config.bassBoostDb),
+          onValueChangeFinished = {
+            model.updateBassBoost(lerp(BassBoostValueRange.first, BassBoostValueRange.last, it))
+          },
+          title = { Text("Bass boost") },
+          valueText = { Text("${lerp(BassBoostValueRange.first, BassBoostValueRange.last, it)}db") }
+        )
+      }
+
+      item {
+        SliderListItem(
+          value = unlerp(PostGainValueRange.first, PostGainValueRange.last, model.config.postGainDb),
+          onValueChangeFinished = {
+            model.updatePostGain(lerp(PostGainValueRange.first, PostGainValueRange.last, it))
+          },
+          title = { Text("Post gain") },
+          valueText = { Text("${lerp(PostGainValueRange.first, PostGainValueRange.last, it)}db") }
+        )
       }
     }
   }
@@ -293,55 +242,11 @@ import kotlinx.coroutines.flow.map
   }
 }
 
-@OptIn(ExperimentalFoundationApi::class)
-@Composable private fun AudioDeviceChip(
-  selected: Boolean,
-  active: Boolean,
-  onClick: () -> Unit,
-  onLongClick: (() -> Unit)?,
-  content: @Composable () -> Unit
-) {
-  val targetBackgroundColor = if (selected) MaterialTheme.colors.secondary
-  else LocalContentColor.current.copy(alpha = ContentAlpha.disabled)
-  val backgroundColor by animateColorAsState(targetBackgroundColor)
-  val contentColor by animateColorAsState(guessingContentColorFor(targetBackgroundColor))
-  Surface(
-    modifier = Modifier
-      .height(32.dp)
-      .alpha(if (active) 1f else ContentAlpha.disabled),
-    shape = RoundedCornerShape(50),
-    color = backgroundColor,
-    contentColor = contentColor
-  ) {
-    Box(
-      modifier = Modifier
-        .combinedClickable(
-          interactionSource = remember { MutableInteractionSource() },
-          indication = LocalIndication.current,
-          onClick = onClick,
-          onLongClick = onLongClick
-        )
-        .padding(horizontal = 8.dp, vertical = 8.dp),
-      contentAlignment = Alignment.Center
-    ) {
-      CompositionLocalProvider(
-        LocalTextStyle provides MaterialTheme.typography.button,
-        content = content
-      )
-    }
-  }
-}
-
 data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
-  val audioDevices: Resource<List<AudioDevice>>,
-  val selectedAudioDevices: Set<String>,
-  val toggleAllAudioDevicesSelections: () -> Unit,
-  val toggleAudioDeviceSelection: (AudioDevice, Boolean) -> Unit,
-  val connectedAudioDevices: Set<String>,
   val currentAudioDevice: AudioDevice,
-  val config: Config,
+  val config: DspConfig,
   val updateEqBand: (Int, Int) -> Unit,
   val updateEqFrequencies: () -> Unit,
   val resetEqFrequencies: () -> Unit,
@@ -362,24 +267,21 @@ data class HomeModel(
 ) = Model {
   val prefs by pref.data.collectAsState(DspPrefs())
 
-  val config = prefs.selectedAudioDevices
-    .map { prefs.configs[it] ?: Config() }
-    .merge()
+  val currentAudioDevice by audioDeviceRepository.currentAudioDevice
+    .collectAsState(AudioDevice.Phone)
 
-  suspend fun updateConfig(block: Config.() -> Config) {
+  val config = prefs.configs[currentAudioDevice.id] ?: DspConfig()
+
+  suspend fun updateConfig(block: DspConfig.() -> DspConfig) {
     pref.updateData {
       copy(
         configs = buildMap {
           putAll(configs)
-          selectedAudioDevices.forEach {
-            put(it, block(prefs.configs[it] ?: Config()))
-          }
+          put(currentAudioDevice.id, block(prefs.configs[currentAudioDevice.id] ?: DspConfig()))
         }
       )
     }
   }
-
-  val audioDevices by audioDeviceRepository.audioDevices.collectAsResourceState()
 
   HomeModel(
     dspEnabled = prefs.dspEnabled,
@@ -387,43 +289,7 @@ data class HomeModel(
       if (!value || permissionManager.requestPermissions(dspPermissions))
         pref.updateData { copy(dspEnabled = value) }
     },
-    audioDevices = audioDevices,
-    selectedAudioDevices = prefs.selectedAudioDevices,
-    toggleAudioDeviceSelection = action { audioDevice, longClick ->
-      pref.updateData {
-        copy(
-          selectedAudioDevices = if (!longClick) setOf(audioDevice.id)
-          else selectedAudioDevices.toMutableSet().apply {
-            if (audioDevice.id in this) remove(audioDevice.id)
-            else add(audioDevice.id)
-          }
-        )
-      }
-    },
-    toggleAllAudioDevicesSelections = action {
-      pref.updateData {
-        val allAudioDevices = audioDevices.getOrNull()?.map { it.id }?.toSet() ?: emptySet()
-        copy(
-          selectedAudioDevices = if (allAudioDevices.all { it in selectedAudioDevices }) emptySet()
-          else allAudioDevices
-        )
-      }
-    },
-    connectedAudioDevices = remember(audioDevices) {
-      combine(
-        audioDevices.getOrElse { emptyList() }
-          .map { audioDevice ->
-            audioDeviceRepository.isAudioDeviceConnected(audioDevice.id)
-              .map { audioDevice.id to it }
-          }
-      ) {
-        it.toList()
-          .filter { it.second }
-          .mapTo(mutableSetOf()) { it.first }
-      }
-    }.collectAsState(emptySet()).value,
-    currentAudioDevice = audioDeviceRepository.currentAudioDevice
-      .collectAsState(AudioDevice.Phone).value,
+    currentAudioDevice = currentAudioDevice,
     config = config,
     updateEqFrequencies = action {
       val frequencies = navigator.push(
@@ -466,9 +332,7 @@ data class HomeModel(
             .sortedBy { it.first }
         ) { it.first }
       )?.second ?: return@action
-      prefs.selectedAudioDevices.forEach {
-        configRepository.updateConfig(it, newConfig)
-      }
+      configRepository.updateConfig(currentAudioDevice.id, newConfig)
     },
     saveConfig = action {
       val id = navigator.push(

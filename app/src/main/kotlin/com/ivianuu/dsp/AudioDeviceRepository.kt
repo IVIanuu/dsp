@@ -58,26 +58,28 @@ sealed interface AudioDevice {
   private val appContext: AppContext,
   private val broadcastsFactory: BroadcastsFactory,
   private val bluetoothManager: @SystemService BluetoothManager,
-  private val logger: Logger,
   permissionManager: PermissionManager,
   scope: ScopedCoroutineScope<AppScope>
 ) {
   val currentAudioDevice: Flow<AudioDevice> = compositionFlow {
+    if (!permissionManager.permissionState(dspPermissions).collectAsState(false).value)
+      return@compositionFlow AudioDevice.Phone
+
     val connectedBluetoothDevice by produceState<AudioDevice?>(null) {
-      a2DpChanges()
+      broadcastsFactory(
+        BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
+        BluetoothA2dp.ACTION_PLAYING_STATE_CHANGED,
+        "android.bluetooth.a2dp.profile.action.ACTIVE_DEVICE_CHANGED"
+      )
         .onStart<Any?> { emit(Unit) }
         .mapLatest {
-          if (!audioManager.isBluetoothA2dpOn) flowOf(null)
+          if (!audioManager.isBluetoothA2dpOn) null
           else a2Dp.withResource(Unit) {
             it.javaClass.getDeclaredMethod("getActiveDevice")
               .invoke(it)
               .safeAs<BluetoothDevice?>()
-              ?.address
+              ?.let { AudioDevice.Bluetooth(it.address, it.alias ?: it.name) }
           }
-        }
-        .flatMapLatest { address ->
-          if (address == null) flowOf(null)
-          else audioDevices.map { it.singleOrNull { it.id == address } }
         }
         .collect { value = it }
     }
@@ -85,25 +87,6 @@ sealed interface AudioDevice {
     if (connectedBluetoothDevice != null) connectedBluetoothDevice!!
     else AudioDevice.Phone
   }
-
-  @SuppressLint("MissingPermission")
-  val audioDevices: Flow<List<AudioDevice>> =
-    permissionManager.permissionState(listOf(typeKeyOf<DspBluetoothConnectPermission>()))
-      .flatMapLatest {
-        if (!it) flowOf(emptyList())
-        else merge(bondedDeviceChanges(), a2DpChanges())
-          .onStart<Any> { emit(Unit) }
-          .map {
-            a2Dp.withResource(Unit) { a2dp ->
-              bluetoothManager.adapter?.bondedDevices
-                ?.filter { it in a2dp.connectedDevices }
-                ?.map { AudioDevice.Bluetooth(it.address, it.alias ?: it.name) }
-                ?: emptyList()
-            }
-          }
-      }
-      .map { it + AudioDevice.Phone }
-      .distinctUntilChanged()
 
   private val a2Dp = RefCountedResource<Unit, BluetoothA2dp>(
     timeout = 2.seconds,
@@ -129,36 +112,5 @@ sealed interface AudioDevice {
         bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy)
       }
     }
-  )
-
-  fun isAudioDeviceConnected(id: String): Flow<Boolean> = audioDevices
-    .map { it.single { it.id == id } }
-    .flatMapConcat {
-      when (it) {
-        is AudioDevice.Bluetooth -> bondedDeviceChanges()
-          .onStart<Any> { emit(Unit) }
-          .map { id.isConnected() }
-          .distinctUntilChanged()
-        AudioDevice.Phone -> flowOf(true)
-      }
-    }
-
-  private fun String.isConnected(): Boolean =
-    bluetoothManager.adapter.getRemoteDevice(this)
-      ?.let {
-        BluetoothDevice::class.java.getDeclaredMethod("isConnected").invoke(it) as Boolean
-      } ?: false
-
-  private fun bondedDeviceChanges() = broadcastsFactory(
-    BluetoothAdapter.ACTION_STATE_CHANGED,
-    BluetoothDevice.ACTION_BOND_STATE_CHANGED,
-    BluetoothDevice.ACTION_ACL_CONNECTED,
-    BluetoothDevice.ACTION_ACL_DISCONNECTED
-  )
-
-  private fun a2DpChanges() = broadcastsFactory(
-    BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
-    BluetoothA2dp.ACTION_PLAYING_STATE_CHANGED,
-    "android.bluetooth.a2dp.profile.action.ACTIVE_DEVICE_CHANGED"
   )
 }
