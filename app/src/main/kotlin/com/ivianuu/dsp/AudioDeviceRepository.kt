@@ -62,7 +62,7 @@ sealed interface AudioDevice {
   scope: ScopedCoroutineScope<AppScope>
 ) {
   val currentAudioDevice: Flow<AudioDevice> = compositionFlow {
-    if (!permissionManager.permissionState(dspPermissions).collectAsState(false).value)
+    if (!remember { permissionManager.permissionState(dspPermissions) }.collectAsState(false).value)
       return@compositionFlow AudioDevice.Phone
 
     val connectedBluetoothDevice by produceState<AudioDevice?>(null) {
