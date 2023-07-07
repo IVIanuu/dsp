@@ -8,6 +8,8 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Intent
 import android.media.audiofx.AudioEffect
+import androidx.compose.animation.core.animateIntAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -33,7 +35,6 @@ import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
@@ -131,7 +132,6 @@ import java.util.*
     audioDeviceRepository.currentAudioDevice
       .onEach { logger.log { "current device changed $it" } }
       .flatMapLatest { configRepository.deviceConfig(it.id) }
-      .map { it ?: DspConfig.Default }
       .collect { value = it }
   }.value ?: return@ScopeComposition
 
@@ -172,9 +172,26 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
       setParameterShort(1202, 1)
     }
 
-    LaunchedEffect(config.eqDb) {
-      // eq levels
-      val sortedEq = config.eqDb
+    val eqAsList = config.eqDb.toList()
+    var previousEq by remember { mutableStateOf(emptyMap<Int, Int>()) }
+
+    val animationSpec = tween<Int>(
+      if (config.eqDb.count { previousEq[it.key] != it.value } > 1) 1000
+      else 0
+    )
+
+    val animatedEq = (0 until 15).associate { index ->
+      key(index) {
+        animateIntAsState(eqAsList[index].first, animationSpec).value to
+            animateIntAsState(eqAsList[index].second, animationSpec).value
+      }
+    }
+
+    // eq levels
+    LaunchedEffect(animatedEq) {
+      previousEq = config.eqDb
+
+      val sortedEq = animatedEq
         .toList()
         .sortedBy { it.first }
 
@@ -182,7 +199,6 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
           sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()
 
       logger.log { "$sessionId update eq ${eqLevels.contentToString()}" }
-
       setParameterFloatArray(116, floatArrayOf(-1f,  -1f) + eqLevels)
     }
 
