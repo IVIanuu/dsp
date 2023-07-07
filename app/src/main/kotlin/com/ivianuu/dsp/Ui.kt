@@ -4,6 +4,7 @@
 
 package com.ivianuu.dsp
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -13,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.ContentAlpha
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.material.LocalContentColor
 import androidx.compose.material.MaterialTheme
 import androidx.compose.material.Text
@@ -36,13 +39,15 @@ import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.backup.BackupAndRestoreScreen
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.compose.action
-import com.ivianuu.essentials.lerp
 import com.ivianuu.essentials.permission.PermissionManager
+import com.ivianuu.essentials.resource.Resource
+import com.ivianuu.essentials.resource.collectAsResourceState
+import com.ivianuu.essentials.resource.getOrElse
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
-import com.ivianuu.essentials.ui.common.VerticalList
-import com.ivianuu.essentials.ui.dialog.ListScreen
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
+import com.ivianuu.essentials.ui.insets.localVerticalInsetsPadding
+import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
@@ -56,11 +61,8 @@ import com.ivianuu.essentials.ui.popup.PopupMenuButton
 import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
-import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
@@ -75,27 +77,21 @@ import kotlinx.coroutines.flow.map
   Scaffold(
     topBar = {
       TopAppBar(
-        title = {
-          Text("DSP")
-          Text(
-            text = model.currentAudioDevice.name,
-            style = MaterialTheme.typography.body2,
-            color = LocalContentColor.current.copy(alpha = ContentAlpha.medium)
-          )
-        },
+        title = { Text("DSP") },
         actions = {
           PopupMenuButton {
-            PopupMenuItem(onSelected = model.loadConfig) { Text("Load config") }
-            PopupMenuItem(onSelected = model.saveConfig) { Text("Save config") }
-            PopupMenuItem(onSelected = model.deleteConfig) { Text("Delete config") }
+            PopupMenuItem(onSelected = model.saveCurrentConfig) { Text("Save config") }
             PopupMenuItem(onSelected = model.openBackupRestore) { Text("Backup and restore") }
           }
         }
       )
     }
   ) {
-    VerticalList {
-      item {
+    LazyVerticalGrid(
+      columns = GridCells.Fixed(2),
+      contentPadding = localVerticalInsetsPadding(top = 8.dp, bottom = 8.dp),
+    ) {
+      item(span = { GridItemSpan(maxLineSpan) }) {
         SwitchListItem(
           value = model.dspEnabled,
           onValueChange = model.updateDspEnabled,
@@ -103,7 +99,19 @@ import kotlinx.coroutines.flow.map
         )
       }
 
-      item {
+      item(span = { GridItemSpan(maxLineSpan) }) {
+        ListItem(
+          title = { Text(model.currentAudioDevice.name) },
+          subtitle = {
+            Text(
+              if (model.currentConfig.id.isUUID) "Custom"
+              else model.currentConfig.id
+            )
+          }
+        )
+      }
+
+      item(span = { GridItemSpan(maxLineSpan) }) {
         val contentColor = LocalContentColor.current
         Subheader {
           Row(
@@ -127,28 +135,61 @@ import kotlinx.coroutines.flow.map
         }
       }
 
-      item {
+      item(span = { GridItemSpan(maxLineSpan) }) {
         Equalizer(
-          eq = model.config.eqDb.toList()
+          eq = model.currentConfig.eqDb.toList()
             .sortedBy { it.first }
             .toMap(),
           onBandChange = model.updateEqBand
         )
       }
 
-      item {
+      item(span = { GridItemSpan(maxLineSpan) }) {
         Subheader { Text("Other") }
       }
 
-      item {
+      item(span = { GridItemSpan(maxLineSpan) }) {
         SliderListItem(
-          value = model.config.bassBoostDb,
+          value = model.currentConfig.bassBoostDb,
           onValueChange = model.updateBassBoost,
           valueRange = BassBoostValueRange,
           title = { Text("Bass boost") },
           valueText = { Text("${it}db") }
         )
       }
+
+      item(span = { GridItemSpan(maxLineSpan) }) {
+        Subheader { Text("Configs") }
+      }
+
+      model.allConfigs.getOrElse { emptyList() }
+        .sortedBy { it.id.lowercase() }
+        .sortedByDescending { model.configUsages[it.id] ?: -1f }
+        .chunked(2)
+        .forEach { row ->
+          row.forEachIndexed { index, config ->
+            item(key = config, span = { GridItemSpan(if (row.size == 1) maxLineSpan else 1) }) {
+              ListItem(
+                modifier = Modifier
+                  .animateItemPlacement()
+                  .padding(top = 8.dp)
+                  .clickable { model.updateDeviceConfig(config) },
+                title = { Text(config.id) },
+                trailing = {
+                  PopupMenuButton {
+                    PopupMenuItem(onSelected = { model.deleteConfig(config) }) {
+                      Text("Delete")
+                    }
+                  }
+                },
+                contentPadding = PaddingValues(
+                  start = if (index == 0 || row.size == 1) 16.dp else 8.dp,
+                  end = if (index == 1 || row.size == 1) 16.dp else 8.dp,
+                )
+              )
+            }
+          }
+        }
     }
   }
 }
@@ -233,14 +274,16 @@ data class HomeModel(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
   val currentAudioDevice: AudioDevice,
-  val config: DspConfig,
+  val currentConfig: DspConfig,
   val updateEqBand: (Int, Int) -> Unit,
   val updateEqFrequencies: () -> Unit,
   val resetEqFrequencies: () -> Unit,
   val updateBassBoost: (Int) -> Unit,
-  val loadConfig: () -> Unit,
-  val saveConfig: () -> Unit,
-  val deleteConfig: () -> Unit,
+  val allConfigs: Resource<List<DspConfig>>,
+  val updateDeviceConfig: (DspConfig) -> Unit,
+  val saveCurrentConfig: () -> Unit,
+  val deleteConfig: (DspConfig) -> Unit,
+  val configUsages: Map<String, Float>,
   val openBackupRestore: () -> Unit
 )
 
@@ -254,14 +297,17 @@ data class HomeModel(
   val currentAudioDevice by audioDeviceRepository.currentAudioDevice
     .collectAsState(AudioDevice.Phone)
 
-  val config by produceState(DspConfig()) {
+  val currentConfig by produceState(DspConfig.Default) {
     snapshotFlow { currentAudioDevice }
-      .flatMapLatest { configRepository.config(it.id) }
-      .collect { value = it ?: DspConfig() }
+      .flatMapLatest { configRepository.deviceConfig(it.id) }
+      .collect { value = it }
   }
 
   suspend fun updateConfig(block: DspConfig.() -> DspConfig) {
-    configRepository.updateConfig(currentAudioDevice.id, config.block())
+    val config = currentConfig.block().copy()
+      .let { if (it.id.isUUID) it else it.copy(id = randomId()) }
+    configRepository.updateConfig(config)
+    configRepository.updateDeviceConfig(currentAudioDevice.id, config.id)
   }
 
   HomeModel(
@@ -272,10 +318,10 @@ data class HomeModel(
         pref.updateData { copy(dspEnabled = value) }
     },
     currentAudioDevice = currentAudioDevice,
-    config = config,
+    currentConfig = currentConfig,
     updateEqFrequencies = action {
       val frequencies = navigator.push(
-        TextInputScreen(initial = config.eqDb.keys.joinToString(","))
+        TextInputScreen(initial = currentConfig.eqDb.keys.joinToString(","))
       )
         ?.split(",")
         ?.mapNotNull { it.toIntOrNull() }
@@ -295,38 +341,25 @@ data class HomeModel(
     updateBassBoost = action { value ->
       updateConfig { copy(bassBoostDb = value) }
     },
-    loadConfig = action {
-      val newConfig = navigator.push(
-        ListScreen(
-          items = configRepository.configs
-            .first()
-            .filterNot {
-              it.key == AudioDevice.Phone.id || it.key.contains(":")
-            }
-            .toList()
-            .sortedBy { it.first }
-        ) { it.first }
-      )?.second ?: return@action
-      updateConfig { newConfig }
+    allConfigs = remember {
+      configRepository.configs
+        .map { it.filterNot { it.id.isUUID } }
+    }.collectAsResourceState().value,
+    updateDeviceConfig = action { value ->
+      configRepository.updateDeviceConfig(currentAudioDevice.id, value.id)
+      configRepository.configUsed(value.id)
+      if (currentConfig.id.isUUID)
+        configRepository.deleteConfig(currentConfig.id)
     },
-    saveConfig = action {
+    saveCurrentConfig = action {
       val id = navigator.push(
         TextInputScreen(label = "Config id..")
       ) ?: return@action
-      configRepository.updateConfig(id, config)
+      configRepository.updateConfig(currentConfig.copy(id = id))
+      configRepository.updateDeviceConfig(currentAudioDevice.id, id)
     },
-    deleteConfig = action {
-      val id = navigator.push(
-        ListScreen(
-          items = configRepository.configs
-            .first()
-            .keys
-            .filterNot { it == AudioDevice.Phone.id || it.contains(":") }
-            .sortedBy { it }
-        )
-      ) ?: return@action
-      configRepository.deleteConfig(id)
-    },
+    deleteConfig = action { value -> configRepository.deleteConfig(value.id) },
+    configUsages = configRepository.configUsages.collectAsState(emptyMap()).value,
     openBackupRestore = action { navigator.push(BackupAndRestoreScreen()) }
   )
 }

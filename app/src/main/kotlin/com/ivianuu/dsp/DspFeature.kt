@@ -130,8 +130,8 @@ import java.util.*
   val config = produceState<DspConfig?>(null) {
     audioDeviceRepository.currentAudioDevice
       .onEach { logger.log { "current device changed $it" } }
-      .flatMapLatest { configRepository.config(it.id) }
-      .map { it ?: DspConfig() }
+      .flatMapLatest { configRepository.deviceConfig(it.id) }
+      .map { it ?: DspConfig.Default }
       .collect { value = it }
   }.value ?: return@ScopeComposition
 
