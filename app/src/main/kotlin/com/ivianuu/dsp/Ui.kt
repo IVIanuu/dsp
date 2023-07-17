@@ -37,8 +37,8 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.dp
 import com.ivianuu.essentials.backup.BackupAndRestoreScreen
-import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.compose.action
+import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.resource.Resource
 import com.ivianuu.essentials.resource.collectAsResourceState

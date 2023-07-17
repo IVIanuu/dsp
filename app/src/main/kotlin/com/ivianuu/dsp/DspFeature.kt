@@ -42,7 +42,7 @@ import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.*
+import java.util.UUID
 
 @Provide fun audioSessionFeature(
   audioDeviceRepository: AudioDeviceRepository,

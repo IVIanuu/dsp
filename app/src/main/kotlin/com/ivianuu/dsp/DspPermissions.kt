@@ -1,9 +1,7 @@
 package com.ivianuu.dsp
 
 import android.Manifest
-import com.ivianuu.essentials.app.AppForegroundScope
 import com.ivianuu.essentials.data.DataStore
-import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.permission.PermissionRevokeHandler
 import com.ivianuu.essentials.permission.ignorebatteryoptimizations.IgnoreBatteryOptimizationsPermission
 import com.ivianuu.essentials.permission.runtime.RuntimePermission
