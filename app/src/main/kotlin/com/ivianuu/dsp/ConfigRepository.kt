@@ -10,7 +10,6 @@ import com.ivianuu.essentials.Scoped
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.time.Clock
-import com.ivianuu.essentials.time.days
 import com.ivianuu.essentials.unlerp
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.Flow
@@ -22,6 +21,7 @@ import kotlinx.coroutines.flow.mapNotNull
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
 import kotlin.time.Duration
+import kotlin.time.Duration.Companion.days
 
 @Provide @Scoped<AppScope> class ConfigRepository(
   private val clock: Clock,

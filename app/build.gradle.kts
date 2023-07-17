@@ -2,8 +2,6 @@
  * Copyright 2022 Manuel Wrage. Use of this source code is governed by the Apache 2.0 license.
  */
 
-import com.ivianuu.essentials.gradle.withLicenses
-
 /*
  * Copyright 2021 Manuel Wrage
  *
@@ -23,19 +21,13 @@ import com.ivianuu.essentials.gradle.withLicenses
 plugins {
   id("com.android.application")
   id("com.ivianuu.essentials")
-  id("com.ivianuu.essentials.compose")
   kotlin("android")
-  kotlin("plugin.serialization")
 }
 
 apply(from = "https://raw.githubusercontent.com/IVIanuu/gradle-scripts/master/android-build-app.gradle")
 apply(from = "https://raw.githubusercontent.com/IVIanuu/gradle-scripts/master/java-8-android.gradle")
 apply(from = "https://raw.githubusercontent.com/IVIanuu/gradle-scripts/master/kt-compiler-args.gradle")
 apply(from = "https://raw.githubusercontent.com/IVIanuu/gradle-scripts/master/kt-source-sets-android.gradle")
-
-essentials {
-  withLicenses()
-}
 
 android {
   buildTypes {

@@ -4,7 +4,7 @@
 
 package com.ivianuu.dsp
 
-import com.ivianuu.essentials.data.PrefModule
+import com.ivianuu.essentials.data.DataStoreModule
 import com.ivianuu.injekt.Provide
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration
@@ -16,14 +16,14 @@ import kotlin.time.Duration
   val configUsages: Map<String, List<Duration>> = emptyMap(),
   val lastAudioSessionId: Int? = null,
 ) {
-  companion object {
-    @Provide val dataStoreModule = PrefModule { DspPrefs() }
+  @Provide companion object {
+    @Provide val dataStoreModule = DataStoreModule("dsp_prefs") { DspPrefs() }
   }
 }
 
 @Serializable data class DspConfig(
   val id: String,
-  val eqDb: Map<Int, Int> = EqBands.associateWith { 0 },
+  val eqDb: Map<Int, Int> = DefaultEqBands.associateWith { 0 },
   val bassBoostDb: Int = 0
 ) {
   companion object {
@@ -34,7 +34,7 @@ import kotlin.time.Duration
 val EqValueRange = -15..15
 val BassBoostValueRange = 0..15
 
-val EqBands = listOf(
+val DefaultEqBands = listOf(
   40,
   60,
   80,

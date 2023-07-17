@@ -50,7 +50,7 @@ import java.util.*
   configRepository: ConfigRepository,
   context: AppContext,
   foregroundManager: ForegroundManager,
-  logger: Logger,
+  @Inject logger: Logger,
   notificationFactory: NotificationFactory,
   pref: DataStore<DspPrefs>
 ) = ScopeComposition<AppScope> {
@@ -194,6 +194,7 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
       val sortedEq = animatedEq
         .toList()
         .sortedBy { it.first }
+
 
       val eqLevels = (sortedEq.map { it.first.toFloat() } +
           sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()

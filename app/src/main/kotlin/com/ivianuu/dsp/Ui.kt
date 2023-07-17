@@ -62,7 +62,6 @@ import com.ivianuu.essentials.ui.popup.PopupMenuItem
 import com.ivianuu.essentials.ui.prefs.SliderListItem
 import com.ivianuu.essentials.ui.prefs.SwitchListItem
 import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
@@ -331,7 +330,7 @@ data class HomeModel(
       updateConfig { copy(eqDb = frequencies.associateWith { eqDb[it] ?: 0 }) }
     },
     resetEqFrequencies = action {
-      updateConfig { copy(eqDb = EqBands.associateWith { eqDb[it] ?: 0 }) }
+      updateConfig { copy(eqDb = DefaultEqBands.associateWith { eqDb[it] ?: 0 }) }
     },
     updateEqBand = action { band, value ->
       updateConfig {

@@ -14,21 +14,21 @@ import androidx.compose.runtime.remember
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scoped
+import com.ivianuu.essentials.SystemService
 import com.ivianuu.essentials.cast
 import com.ivianuu.essentials.compose.compositionFlow
-import com.ivianuu.essentials.coroutines.RefCountedResource
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
-import com.ivianuu.essentials.coroutines.withResource
+import com.ivianuu.essentials.coroutines.sharedResource
+import com.ivianuu.essentials.coroutines.use
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.permission.PermissionManager
 import com.ivianuu.essentials.result.catch
 import com.ivianuu.essentials.safeAs
-import com.ivianuu.essentials.time.seconds
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.injekt.Provide
-import com.ivianuu.injekt.android.SystemService
 import com.ivianuu.injekt.common.typeKeyOf
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flatMapLatest
@@ -39,6 +39,7 @@ import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.seconds
 
 sealed interface AudioDevice {
   val id: String
@@ -74,7 +75,7 @@ sealed interface AudioDevice {
         .onStart<Any?> { emit(Unit) }
         .mapLatest {
           if (!audioManager.isBluetoothA2dpOn) null
-          else a2Dp.withResource(Unit) {
+          else a2Dp.use {
             it.javaClass.getDeclaredMethod("getActiveDevice")
               .invoke(it)
               .safeAs<BluetoothDevice?>()
@@ -88,9 +89,8 @@ sealed interface AudioDevice {
     else AudioDevice.Phone
   }
 
-  private val a2Dp = RefCountedResource<Unit, BluetoothA2dp>(
-    timeout = 2.seconds,
-    scope = scope,
+  private val a2Dp = scope.sharedResource<BluetoothA2dp>(
+    sharingStarted = SharingStarted.WhileSubscribed(2.seconds.inWholeMilliseconds),
     create = {
       suspendCancellableCoroutine { cont ->
         bluetoothManager.adapter.getProfileProxy(
@@ -107,7 +107,7 @@ sealed interface AudioDevice {
         )
       }
     },
-    release = { _, proxy ->
+    release = { proxy ->
       catch {
         bluetoothManager.adapter.closeProfileProxy(BluetoothProfile.A2DP, proxy)
       }

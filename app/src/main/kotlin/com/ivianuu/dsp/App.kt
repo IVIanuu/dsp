@@ -7,13 +7,11 @@ package com.ivianuu.dsp
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scope
 import com.ivianuu.essentials.app.EsApp
-import com.ivianuu.injekt.Providers
-import com.ivianuu.injekt.inject
+import com.ivianuu.essentials.injectWith
+import com.ivianuu.essentials.logging.AndroidLogger
+import com.ivianuu.injekt.provider
 
 class App : EsApp() {
   override fun buildAppScope(): Scope<AppScope> =
-    @Providers(
-      ".**",
-      "com.ivianuu.essentials.logging.AndroidLogger.Companion.androidLogger"
-    ) inject()
+    injectWith(provider(AndroidLogger::androidLogger))
 }
