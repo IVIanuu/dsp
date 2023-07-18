@@ -5,8 +5,6 @@
 package com.ivianuu.dsp
 
 import android.app.NotificationManager
-import android.app.PendingIntent
-import android.content.Intent
 import android.media.audiofx.AudioEffect
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -22,7 +20,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
-import com.ivianuu.essentials.app.EsActivity
 import com.ivianuu.essentials.app.ScopeComposition
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.foreground.ForegroundManager
@@ -33,6 +30,8 @@ import com.ivianuu.essentials.result.onFailure
 import com.ivianuu.essentials.result.onSuccess
 import com.ivianuu.essentials.util.BroadcastsFactory
 import com.ivianuu.essentials.util.NotificationFactory
+import com.ivianuu.essentials.util.StartAppRemoteAction
+import com.ivianuu.essentials.util.remoteActionOf
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.first
@@ -40,6 +39,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
+import kotlinx.serialization.json.Json
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.UUID
@@ -50,6 +50,7 @@ import java.util.UUID
   configRepository: ConfigRepository,
   context: AppContext,
   foregroundManager: ForegroundManager,
+  @Inject json: Json,
   @Inject logger: Logger,
   notificationFactory: NotificationFactory,
   pref: DataStore<DspPrefs>
@@ -65,15 +66,7 @@ import java.util.UUID
       ) {
         setContentTitle("DSP")
         setSmallIcon(R.drawable.ic_graphic_eq)
-        setContentIntent(
-          PendingIntent.getActivity(
-            context,
-            1,
-            Intent(context, EsActivity::class.java),
-            PendingIntent.FLAG_UPDATE_CURRENT or
-                PendingIntent.FLAG_IMMUTABLE
-          )
-        )
+        setContentIntent(remoteActionOf<StartAppRemoteAction>(context))
       }
     }
   }
