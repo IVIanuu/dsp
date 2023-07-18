@@ -79,7 +79,7 @@ sealed interface AudioDevice {
   }
 
   private val a2Dp = scope.sharedResource<BluetoothA2dp>(
-    sharingStarted = SharingStarted.WhileSubscribed(2000, 0),
+    sharingStarted = SharingStarted.WhileSubscribed(1000, 0),
     create = {
       suspendCancellableCoroutine { cont ->
         bluetoothManager.adapter.getProfileProxy(
