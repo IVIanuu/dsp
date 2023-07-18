@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
-import kotlin.time.Duration.Companion.seconds
 
 sealed interface AudioDevice {
   val id: String
@@ -80,7 +79,7 @@ sealed interface AudioDevice {
   }
 
   private val a2Dp = scope.sharedResource<BluetoothA2dp>(
-    sharingStarted = SharingStarted.WhileSubscribed(2.seconds.inWholeMilliseconds),
+    sharingStarted = SharingStarted.WhileSubscribed(2000, 0),
     create = {
       suspendCancellableCoroutine { cont ->
         bluetoothManager.adapter.getProfileProxy(
