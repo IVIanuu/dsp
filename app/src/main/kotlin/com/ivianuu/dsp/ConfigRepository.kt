@@ -35,6 +35,10 @@ import kotlin.time.Duration.Companion.days
     .map { it.configUsages.mapToUsageScores() }
     .distinctUntilChanged()
 
+  init {
+    trimUsages()
+  }
+
   fun config(id: String): Flow<DspConfig?> = configs
     .mapNotNull { it.singleOrNull { it.id == id } }
     .distinctUntilChanged()
@@ -89,9 +93,11 @@ import kotlin.time.Duration.Companion.days
     }
   }
 
-  suspend fun trimUsages() {
-    pref.updateData {
-      copy(configUsages = configUsages.trim(14.days))
+  private fun trimUsages() {
+    scope.launch {
+      pref.updateData {
+        copy(configUsages = configUsages.trim(28.days))
+      }
     }
   }
 
