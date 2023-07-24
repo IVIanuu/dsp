@@ -47,11 +47,11 @@ import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
 import com.ivianuu.essentials.ui.insets.localVerticalInsetsPadding
+import com.ivianuu.essentials.ui.material.AppBar
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
-import com.ivianuu.essentials.ui.material.TopAppBar
 import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.Navigator
 import com.ivianuu.essentials.ui.navigation.RootScreen
@@ -75,7 +75,7 @@ import kotlinx.coroutines.flow.map
 @Provide val homeUi = Ui<HomeScreen, HomeModel> { model ->
   Scaffold(
     topBar = {
-      TopAppBar(
+      AppBar(
         title = { Text("DSP") },
         actions = {
           PopupMenuButton {
