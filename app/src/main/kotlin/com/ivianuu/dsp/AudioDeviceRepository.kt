@@ -34,7 +34,7 @@ sealed interface AudioDevice {
   val id: String
   val name: String
 
-  object Phone : AudioDevice {
+  data object Phone : AudioDevice {
     override val name: String get() = "Phone speaker"
     override val id: String get() = "audio_device_phone"
   }
