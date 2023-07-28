@@ -181,8 +181,10 @@ import kotlinx.coroutines.flow.map
                     }
                   }
                 },
-                contentPadding = PaddingValues(
-                  start = if (index == 0 || row.size == 1) 16.dp else 8.dp,
+                leadingPadding = PaddingValues(
+                  start = if (index == 0 || row.size == 1) 16.dp else 8.dp
+                ),
+                trailingPadding = PaddingValues(
                   end = if (index == 1 || row.size == 1) 16.dp else 8.dp,
                 )
               )
