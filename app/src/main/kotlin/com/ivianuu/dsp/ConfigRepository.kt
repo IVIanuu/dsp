@@ -4,9 +4,12 @@
 
 package com.ivianuu.dsp
 
+import android.annotation.SuppressLint
+import android.bluetooth.BluetoothManager
 import android.view.animation.AccelerateInterpolator
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.Scoped
+import com.ivianuu.essentials.SystemService
 import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
 import com.ivianuu.essentials.data.DataStore
 import com.ivianuu.essentials.time.Clock
@@ -22,7 +25,9 @@ import kotlinx.coroutines.launch
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.days
 
+@SuppressLint("MissingPermission")
 @Provide @Scoped<AppScope> class ConfigRepository(
+  private val bluetoothManager: @SystemService BluetoothManager,
   private val clock: Clock,
   private val pref: DataStore<DspPrefs>,
   private val scope: ScopedCoroutineScope<AppScope>
@@ -36,7 +41,19 @@ import kotlin.time.Duration.Companion.days
     .distinctUntilChanged()
 
   init {
-    trimUsages()
+    scope.launch {
+      pref.updateData {
+        val newConfigsByDevice = if (!bluetoothManager.adapter.isEnabled) configsByDevice
+        else configsByDevice
+          .filter { it.key in bluetoothManager.adapter.bondedDevices.map { it.address } }
+        copy(
+          configUsages = configUsages.trim(28.days),
+          configsByDevice = newConfigsByDevice,
+          configs = configs
+            .filter { !it.key.isUUID || it.key in newConfigsByDevice.values }
+        )
+      }.also { println(it) }
+    }
   }
 
   fun config(id: String): Flow<DspConfig?> = configs
@@ -89,14 +106,6 @@ import kotlin.time.Duration.Companion.days
             put(id, (this[id] ?: emptyList()) + now)
           }
         )
-      }
-    }
-  }
-
-  private fun trimUsages() {
-    scope.launch {
-      pref.updateData {
-        copy(configUsages = configUsages.trim(28.days))
       }
     }
   }
