@@ -15,7 +15,7 @@ object Build {
 
 object Deps {
   object Essentials {
-    private const val version = "0.0.1-dev1217"
+    private const val version = "0.0.1-dev1218"
     const val android = "com.ivianuu.essentials:android:$version"
     const val backup = "com.ivianuu.essentials:backup:$version"
     const val boot = "com.ivianuu.essentials:boot:$version"
