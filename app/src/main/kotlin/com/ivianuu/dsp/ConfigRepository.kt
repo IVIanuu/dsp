@@ -129,7 +129,7 @@ import kotlin.time.Duration.Companion.days
     }
     .distinctUntilChanged()
 
-  private val usageInterpolator = AccelerateInterpolator()
+  private val usageInterpolator = AccelerateInterpolator(2f)
 
   private fun Map<String, List<Duration>>.mapToUsageScores(): Map<String, Float> {
     val now = clock()
