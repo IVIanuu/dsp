@@ -24,7 +24,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -230,7 +230,7 @@ import kotlinx.coroutines.flow.map
 
           Spacer(Modifier.height(8.dp))
 
-          var internalValue by remember(value) { mutableStateOf(value) }
+          var internalValue by remember(value) { mutableIntStateOf(value) }
 
           Layout(
             modifier = Modifier
