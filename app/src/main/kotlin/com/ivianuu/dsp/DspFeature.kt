@@ -124,10 +124,13 @@ import java.util.UUID
 
 class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
   private val jamesDSP = catch {
-    AudioEffect::class.java.getConstructor(
-      UUID::class.java,
-      UUID::class.java, Integer.TYPE, Integer.TYPE
-    ).newInstance(EFFECT_TYPE_CUSTOM, EFFECT_TYPE_JAMES_DSP, 0, sessionId)
+    AudioEffect::class.java
+      .getConstructor(UUID::class.java, UUID::class.java, Integer.TYPE, Integer.TYPE).newInstance(
+        UUID.fromString("f98765f4-c321-5de6-9a45-123459495ab2"),
+        UUID.fromString("f27317f4-c984-4de6-9a90-545759495bf2"),
+        0,
+        sessionId
+      )
   }
     .printErrors()
     .getOrThrow()
@@ -224,10 +227,5 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
       ByteArray::class.java
     )
     setParameter.invoke(jamesDSP, arguments, result)
-  }
-
-  companion object {
-    private val EFFECT_TYPE_CUSTOM = UUID.fromString("f98765f4-c321-5de6-9a45-123459495ab2")
-    private val EFFECT_TYPE_JAMES_DSP = UUID.fromString("f27317f4-c984-4de6-9a90-545759495bf2")
   }
 }
