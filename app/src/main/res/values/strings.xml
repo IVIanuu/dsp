@@ -4,4 +4,6 @@
 
 <resources>
     <string name="app_name">DSP</string>
+
+    <color name="ic_launcher_background">#FFFC5C65</color>
 </resources>

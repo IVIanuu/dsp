@@ -48,27 +48,14 @@ import java.util.UUID
   audioDeviceRepository: AudioDeviceRepository,
   broadcastsFactory: BroadcastsFactory,
   configRepository: ConfigRepository,
-  context: AppContext,
   foregroundManager: ForegroundManager,
-  @Inject json: Json,
   @Inject logger: Logger,
-  notificationFactory: NotificationFactory,
   pref: DataStore<DspPrefs>
 ) = ScopeComposition<AppScope> {
   val enabled by remember { pref.data.map { it.dspEnabled } }.collectAsState(false)
 
   LaunchedEffect(true) {
-    foregroundManager.startForeground {
-      notificationFactory(
-        "foreground",
-        "Foreground",
-        NotificationManager.IMPORTANCE_LOW
-      ) {
-        setContentTitle("DSP")
-        setSmallIcon(R.drawable.ic_graphic_eq)
-        setContentIntent(remoteActionOf<StartAppRemoteAction>(context))
-      }
-    }
+    foregroundManager.startForeground()
   }
 
   var audioSessionIds by remember { mutableStateOf(listOf<Int>()) }
