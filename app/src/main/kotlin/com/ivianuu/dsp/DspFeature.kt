@@ -4,7 +4,6 @@
 
 package com.ivianuu.dsp
 
-import android.app.NotificationManager
 import android.media.audiofx.AudioEffect
 import androidx.compose.animation.core.animateIntAsState
 import androidx.compose.animation.core.tween
@@ -18,7 +17,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.ivianuu.essentials.AppContext
 import com.ivianuu.essentials.AppScope
 import com.ivianuu.essentials.app.ScopeComposition
 import com.ivianuu.essentials.data.DataStore
@@ -26,12 +24,11 @@ import com.ivianuu.essentials.foreground.ForegroundManager
 import com.ivianuu.essentials.logging.Logger
 import com.ivianuu.essentials.logging.log
 import com.ivianuu.essentials.result.catch
+import com.ivianuu.essentials.result.getOrThrow
 import com.ivianuu.essentials.result.onFailure
 import com.ivianuu.essentials.result.onSuccess
+import com.ivianuu.essentials.result.printErrors
 import com.ivianuu.essentials.util.BroadcastsFactory
-import com.ivianuu.essentials.util.NotificationFactory
-import com.ivianuu.essentials.util.StartAppRemoteAction
-import com.ivianuu.essentials.util.remoteActionOf
 import com.ivianuu.injekt.Inject
 import com.ivianuu.injekt.Provide
 import kotlinx.coroutines.flow.first
@@ -39,7 +36,6 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.onStart
-import kotlinx.serialization.json.Json
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.UUID
@@ -127,15 +123,14 @@ import java.util.UUID
 }
 
 class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
-  private val jamesDSP = try {
+  private val jamesDSP = catch {
     AudioEffect::class.java.getConstructor(
       UUID::class.java,
       UUID::class.java, Integer.TYPE, Integer.TYPE
     ).newInstance(EFFECT_TYPE_CUSTOM, EFFECT_TYPE_JAMES_DSP, 0, sessionId)
-  } catch (e: Throwable) {
-    logger.log { "$sessionId couln't create" }
-    throw IllegalStateException("Couldn't create effect for $sessionId")
   }
+    .printErrors()
+    .getOrThrow()
 
   init {
     logger.log { "$sessionId -> start" }
@@ -199,44 +194,36 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
   }
 
   private fun setParameterShort(parameter: Int, value: Short) {
-    try {
-      val arguments = byteArrayOf(
-        parameter.toByte(), (parameter shr 8).toByte(),
-        (parameter shr 16).toByte(), (parameter shr 24).toByte()
-      )
-      val result = byteArrayOf(
-        value.toByte(), (value.toInt() shr 8).toByte()
-      )
-      val setParameter = AudioEffect::class.java.getMethod(
-        "setParameter",
-        ByteArray::class.java,
-        ByteArray::class.java
-      )
-      setParameter.invoke(jamesDSP, arguments, result)
-    } catch (e: Exception) {
-      throw RuntimeException(e)
-    }
+    val arguments = byteArrayOf(
+      parameter.toByte(), (parameter shr 8).toByte(),
+      (parameter shr 16).toByte(), (parameter shr 24).toByte()
+    )
+    val result = byteArrayOf(
+      value.toByte(), (value.toInt() shr 8).toByte()
+    )
+    val setParameter = AudioEffect::class.java.getMethod(
+      "setParameter",
+      ByteArray::class.java,
+      ByteArray::class.java
+    )
+    setParameter.invoke(jamesDSP, arguments, result)
   }
 
   private fun setParameterFloatArray(parameter: Int, value: FloatArray) {
-    try {
-      val arguments = byteArrayOf(
-        parameter.toByte(), (parameter shr 8).toByte(),
-        (parameter shr 16).toByte(), (parameter shr 24).toByte()
-      )
-      val result = ByteArray(value.size * 4)
-      val byteDataBuffer = ByteBuffer.wrap(result)
-      byteDataBuffer.order(ByteOrder.nativeOrder())
-      for (i in value.indices) byteDataBuffer.putFloat(value[i])
-      val setParameter = AudioEffect::class.java.getMethod(
-        "setParameter",
-        ByteArray::class.java,
-        ByteArray::class.java
-      )
-      setParameter.invoke(jamesDSP, arguments, result)
-    } catch (e: Exception) {
-      throw RuntimeException(e)
-    }
+    val arguments = byteArrayOf(
+      parameter.toByte(), (parameter shr 8).toByte(),
+      (parameter shr 16).toByte(), (parameter shr 24).toByte()
+    )
+    val result = ByteArray(value.size * 4)
+    val byteDataBuffer = ByteBuffer.wrap(result)
+    byteDataBuffer.order(ByteOrder.nativeOrder())
+    for (i in value.indices) byteDataBuffer.putFloat(value[i])
+    val setParameter = AudioEffect::class.java.getMethod(
+      "setParameter",
+      ByteArray::class.java,
+      ByteArray::class.java
+    )
+    setParameter.invoke(jamesDSP, arguments, result)
   }
 
   companion object {
