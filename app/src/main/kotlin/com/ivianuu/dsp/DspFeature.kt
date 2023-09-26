@@ -188,7 +188,6 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
         .toList()
         .sortedBy { it.first }
 
-
       val eqLevels = (sortedEq.map { it.first.toFloat() } +
           sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()
 

@@ -6,9 +6,9 @@
 
 object Build {
   const val applicationId = "com.ivianuu.dsp"
-  const val compileSdk = 33
-  const val minSdk = 28
-  const val targetSdk = 31
+  const val compileSdk = 34
+  const val minSdk = 33
+  const val targetSdk = 33
   const val versionCode = 1
   const val versionName = "0.0.1"
 }
