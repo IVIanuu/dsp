@@ -52,8 +52,8 @@ import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
 import com.ivianuu.essentials.ui.material.Slider
 import com.ivianuu.essentials.ui.material.Subheader
-import com.ivianuu.essentials.ui.navigation.Model
 import com.ivianuu.essentials.ui.navigation.Navigator
+import com.ivianuu.essentials.ui.navigation.Presenter
 import com.ivianuu.essentials.ui.navigation.RootScreen
 import com.ivianuu.essentials.ui.navigation.Ui
 import com.ivianuu.essentials.ui.navigation.push
@@ -72,15 +72,15 @@ import kotlinx.coroutines.flow.map
 
 @Provide class HomeScreen : RootScreen
 
-@Provide val homeUi = Ui<HomeScreen, HomeModel> { model ->
+@Provide val homeUi = Ui<HomeScreen, HomeState> { state ->
   Scaffold(
     topBar = {
       AppBar(
         title = { Text("DSP") },
         actions = {
           PopupMenuButton {
-            PopupMenuItem(onSelected = model.saveCurrentConfig) { Text("Save config") }
-            PopupMenuItem(onSelected = model.openBackupRestore) { Text("Backup and restore") }
+            PopupMenuItem(onSelected = state.saveCurrentConfig) { Text("Save config") }
+            PopupMenuItem(onSelected = state.openBackupRestore) { Text("Backup and restore") }
           }
         }
       )
@@ -92,19 +92,19 @@ import kotlinx.coroutines.flow.map
     ) {
       item(span = { GridItemSpan(maxLineSpan) }) {
         SwitchListItem(
-          value = model.dspEnabled,
-          onValueChange = model.updateDspEnabled,
+          value = state.dspEnabled,
+          onValueChange = state.updateDspEnabled,
           title = { Text("DSP Enabled") }
         )
       }
 
       item(span = { GridItemSpan(maxLineSpan) }) {
         ListItem(
-          title = { Text(model.currentAudioDevice.name) },
+          title = { Text(state.currentAudioDevice.name) },
           subtitle = {
             Text(
-              if (model.currentConfig.id.isUUID) "Custom"
-              else model.currentConfig.id
+              if (state.currentConfig.id.isUUID) "Custom"
+              else state.currentConfig.id
             )
           }
         )
@@ -122,10 +122,10 @@ import kotlinx.coroutines.flow.map
 
             CompositionLocalProvider(LocalContentColor provides contentColor) {
               PopupMenuButton {
-                PopupMenuItem(onSelected = model.updateEqFrequencies) {
+                PopupMenuItem(onSelected = state.updateEqFrequencies) {
                   Text("Update frequencies")
                 }
-                PopupMenuItem(onSelected = model.resetEqFrequencies) {
+                PopupMenuItem(onSelected = state.resetEqFrequencies) {
                   Text("Reset frequencies")
                 }
               }
@@ -136,10 +136,10 @@ import kotlinx.coroutines.flow.map
 
       item(span = { GridItemSpan(maxLineSpan) }) {
         Equalizer(
-          eq = model.currentConfig.eqDb.toList()
+          eq = state.currentConfig.eqDb.toList()
             .sortedBy { it.first }
             .toMap(),
-          onBandChange = model.updateEqBand
+          onBandChange = state.updateEqBand
         )
       }
 
@@ -149,8 +149,8 @@ import kotlinx.coroutines.flow.map
 
       item(span = { GridItemSpan(maxLineSpan) }) {
         SliderListItem(
-          value = model.currentConfig.bassBoostDb,
-          onValueChange = model.updateBassBoost,
+          value = state.currentConfig.bassBoostDb,
+          onValueChange = state.updateBassBoost,
           valueRange = BassBoostValueRange,
           title = { Text("Bass boost") },
           valueText = { Text("${it}db") }
@@ -161,9 +161,9 @@ import kotlinx.coroutines.flow.map
         Subheader { Text("Configs") }
       }
 
-      model.allConfigs.getOrElse { emptyList() }
+      state.allConfigs.getOrElse { emptyList() }
         .sortedBy { it.id.lowercase() }
-        .sortedByDescending { model.configUsages[it.id] ?: -1f }
+        .sortedByDescending { state.configUsages[it.id] ?: -1f }
         .chunked(2)
         .forEach { row ->
           row.forEachIndexed { index, config ->
@@ -172,11 +172,11 @@ import kotlinx.coroutines.flow.map
                 modifier = Modifier
                   .animateItemPlacement()
                   .padding(top = 8.dp)
-                  .clickable { model.updateDeviceConfig(config) },
+                  .clickable { state.updateDeviceConfig(config) },
                 title = { Text(config.id) },
                 trailing = {
                   PopupMenuButton {
-                    PopupMenuItem(onSelected = { model.deleteConfig(config) }) {
+                    PopupMenuItem(onSelected = { state.deleteConfig(config) }) {
                       Text("Delete")
                     }
                   }
@@ -271,7 +271,7 @@ import kotlinx.coroutines.flow.map
   }
 }
 
-data class HomeModel(
+data class HomeState(
   val dspEnabled: Boolean,
   val updateDspEnabled: (Boolean) -> Unit,
   val currentAudioDevice: AudioDevice,
@@ -288,13 +288,13 @@ data class HomeModel(
   val openBackupRestore: () -> Unit
 )
 
-@Provide fun homeModel(
+@Provide fun homePresenter(
   audioDeviceRepository: AudioDeviceRepository,
   configRepository: ConfigRepository,
   navigator: Navigator,
   permissionManager: PermissionManager,
   pref: DataStore<DspPrefs>
-) = Model {
+) = Presenter {
   val currentAudioDevice by audioDeviceRepository.currentAudioDevice
     .collectAsState(AudioDevice.Phone)
 
@@ -311,7 +311,7 @@ data class HomeModel(
     configRepository.updateDeviceConfig(currentAudioDevice.id, config.id)
   }
 
-  HomeModel(
+  HomeState(
     dspEnabled = remember { pref.data.map { it.dspEnabled } }
       .collectAsState(false).value,
     updateDspEnabled = action { value ->
