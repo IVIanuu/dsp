@@ -177,7 +177,7 @@ class AudioSession(val sessionId: Int, @Inject val logger: Logger) {
           sortedEq.map { (_, value) -> value.toFloat() }).toFloatArray()
 
       logger.log { "$sessionId update eq ${eqLevels.contentToString()}" }
-      setParameterFloatArray(116, floatArrayOf(-1f,  -1f) + eqLevels)
+      setParameterFloatArray(116, floatArrayOf(3f,  -1f) + eqLevels)
     }
 
     // bass boost switch
