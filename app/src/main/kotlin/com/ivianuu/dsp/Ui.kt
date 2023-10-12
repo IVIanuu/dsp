@@ -46,7 +46,6 @@ import com.ivianuu.essentials.resource.getOrElse
 import com.ivianuu.essentials.ui.AppColors
 import com.ivianuu.essentials.ui.common.HorizontalList
 import com.ivianuu.essentials.ui.dialog.TextInputScreen
-import com.ivianuu.essentials.ui.insets.localVerticalInsetsPadding
 import com.ivianuu.essentials.ui.material.AppBar
 import com.ivianuu.essentials.ui.material.ListItem
 import com.ivianuu.essentials.ui.material.Scaffold
@@ -86,10 +85,7 @@ import kotlinx.coroutines.flow.map
       )
     }
   ) {
-    LazyVerticalGrid(
-      columns = GridCells.Fixed(2),
-      contentPadding = localVerticalInsetsPadding(top = 8.dp, bottom = 8.dp),
-    ) {
+    LazyVerticalGrid(columns = GridCells.Fixed(2)) {
       item(span = { GridItemSpan(maxLineSpan) }) {
         SwitchListItem(
           value = state.dspEnabled,
