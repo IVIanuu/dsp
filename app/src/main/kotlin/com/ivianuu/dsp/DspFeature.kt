@@ -50,9 +50,10 @@ import java.util.UUID
 ) = ScopeComposition<AppScope> {
   val enabled by remember { pref.data.map { it.dspEnabled } }.collectAsState(false)
 
-  LaunchedEffect(true) {
-    foregroundManager.startForeground()
-  }
+  if (enabled)
+    LaunchedEffect(true) {
+      foregroundManager.startForeground()
+    }
 
   var audioSessionIds by remember { mutableStateOf(listOf<Int>()) }
   LaunchedEffect(true) {
