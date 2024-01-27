@@ -76,7 +76,7 @@ import java.util.UUID
   }
 
   val audioSessions = audioSessionIds
-    .mapNotNull { sessionId ->
+    .mapIndexedNotNull { sessionIndex, sessionId ->
       key(sessionId) {
         val session = remember {
           var session: AudioSession? = null
@@ -90,13 +90,15 @@ import java.util.UUID
           }
 
           // this session seems to be broken
-          if (session == null)
+          if (session == null) {
+            logger.log { "remove broken audio session $sessionId" }
             audioSessionIds = audioSessionIds - sessionId
+          }
 
           session
         }
 
-        if (session != null)
+        if (session != null && sessionIndex == audioSessionIds.lastIndex)
           LaunchedEffect(true) {
             pref.updateData { copy(lastAudioSessionId = sessionId) }
           }
@@ -111,6 +113,10 @@ import java.util.UUID
       .flatMapLatest { configRepository.deviceConfig(it.id) }
       .collect { value = it }
   }.value ?: return@ScopeComposition
+
+  LaunchedEffect(audioSessions) {
+    logger.log { "audio sessions changed ${audioSessions.map { it.sessionId }}" }
+  }
 
   audioSessions.forEach { audioSession ->
     key(audioSession.sessionId) {
