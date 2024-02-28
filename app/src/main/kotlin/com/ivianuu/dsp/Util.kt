@@ -1,7 +1,7 @@
 package com.ivianuu.dsp
 
-import java.util.UUID
-import java.util.regex.Pattern
+import java.util.*
+import java.util.regex.*
 
 private val UUIDPattern =
   Pattern.compile("[\\da-f]{8}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{4}-[\\da-f]{12}$")

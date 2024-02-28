@@ -4,25 +4,17 @@
 
 package com.ivianuu.dsp
 
-import android.annotation.SuppressLint
-import android.bluetooth.BluetoothManager
-import android.view.animation.AccelerateInterpolator
-import com.ivianuu.essentials.AppScope
-import com.ivianuu.essentials.Scoped
-import com.ivianuu.essentials.SystemService
-import com.ivianuu.essentials.coroutines.ScopedCoroutineScope
-import com.ivianuu.essentials.data.DataStore
-import com.ivianuu.essentials.time.Clock
-import com.ivianuu.essentials.unlerp
-import com.ivianuu.injekt.Provide
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.flowOf
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.flow.mapNotNull
-import kotlinx.coroutines.launch
-import kotlin.time.Duration
+import android.annotation.*
+import android.bluetooth.*
+import android.view.animation.*
+import com.ivianuu.essentials.*
+import com.ivianuu.essentials.coroutines.*
+import com.ivianuu.essentials.data.*
+import com.ivianuu.essentials.time.*
+import com.ivianuu.injekt.*
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.*
+import kotlin.time.*
 import kotlin.time.Duration.Companion.days
 
 @SuppressLint("MissingPermission")
@@ -52,7 +44,7 @@ import kotlin.time.Duration.Companion.days
           configs = configs
             .filter { !it.key.isUUID || it.key in newConfigsByDevice.values }
         )
-      }.also { println(it) }
+      }
     }
   }
 
