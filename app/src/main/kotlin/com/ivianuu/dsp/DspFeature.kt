@@ -28,7 +28,7 @@ import java.util.*
   private val pref: DataStore<DspPrefs>
 ) : ScopeComposition<AppScope> {
   @Composable override fun Content() {
-    val enabled = pref.data.map { it.dspEnabled }.collect(false)
+    val enabled = pref.data.collect(null)?.dspEnabled == true
 
     if (enabled)
       LaunchedEffect(true) {

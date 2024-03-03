@@ -28,7 +28,6 @@ import com.ivianuu.essentials.ui.material.*
 import com.ivianuu.essentials.ui.navigation.*
 import com.ivianuu.essentials.ui.prefs.*
 import com.ivianuu.injekt.*
-import kotlinx.coroutines.flow.*
 
 @Provide val dspAppColors = AppColors(
   primary = Color(0xFFFC5C65),
@@ -57,8 +56,8 @@ import kotlinx.coroutines.flow.*
       }
 
       val allConfigs = configRepository.configs
-        .map { it.filterNot { it.id.isUUID } }
         .collectResource()
+        .map { it.filterNot { it.id.isUUID } }
       val configUsages = configRepository.configUsages.collect(emptyMap())
 
       ScreenScaffold(
@@ -85,7 +84,7 @@ import kotlinx.coroutines.flow.*
         LazyVerticalGrid(columns = GridCells.Fixed(2)) {
           item(span = { GridItemSpan(maxLineSpan) }) {
             SwitchListItem(
-              value = pref.data.map { it.dspEnabled }.collect(false),
+              value = pref.data.collect(null)?.dspEnabled == true,
               onValueChange = scopedAction { value ->
                 if (!value || permissionManager.requestPermissions(dspPermissions))
                   pref.updateData { copy(dspEnabled = value) }
