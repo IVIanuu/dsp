@@ -174,11 +174,11 @@ import com.ivianuu.injekt.*
             Subheader { Text("Configs") }
           }
 
-          allConfigs.getOrElse { emptyList() }
-            .sortedBy { it.id.lowercase() }
-            .sortedByDescending { configUsages[it.id] ?: -1f }
-            .chunked(2)
-            .forEach { row ->
+          allConfigs.getOrNull()
+            ?.sortedBy { it.id.lowercase() }
+            ?.sortedByDescending { configUsages[it.id] ?: -1f }
+            ?.chunked(2)
+            ?.forEach { row ->
               row.forEachIndexed { index, config ->
                 item(key = config, span = { GridItemSpan(if (row.size == 1) maxLineSpan else 1) }) {
                   ListItem(
