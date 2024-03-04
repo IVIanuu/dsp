@@ -123,7 +123,7 @@ import java.util.*
       jamesDsp.enabled = enabled
     }
 
-    LaunchedEffect(jamesDsp, true) {
+    LaunchedEffect(jamesDsp) {
       // eq switch
       jamesDsp.setParameterShort(1202, 1)
     }
@@ -159,7 +159,7 @@ import java.util.*
     }
 
     // bass boost switch
-    LaunchedEffect(jamesDsp, true) { jamesDsp.setParameterShort(1201, 1) }
+    LaunchedEffect(jamesDsp) { jamesDsp.setParameterShort(1201, 1) }
 
     // bass boost gain
     LaunchedEffect(config.bassBoostDb) {
