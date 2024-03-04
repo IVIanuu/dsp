@@ -21,28 +21,26 @@ import java.util.*
 
 @Provide class DspFeature(
   private val audioDeviceRepository: AudioDeviceRepository,
-  private val broadcastsFactory: BroadcastsFactory,
+  private val broadcastManager: BroadcastManager,
   private val configRepository: ConfigRepository,
   private val foregroundManager: ForegroundManager,
   private val logger: Logger,
   private val pref: DataStore<DspPrefs>
 ) : ScopeComposition<AppScope> {
   @Composable override fun Content() {
-    val enabled = pref.data.collect(null)?.dspEnabled == true
+    val enabled = pref.data.state(null)?.dspEnabled == true
 
     if (enabled)
-      LaunchedEffect(true) {
-        foregroundManager.startForeground("dsp")
-      }
+      foregroundManager.Foreground("dsp")
 
     val config = audioDeviceRepository.currentAudioDevice
       .onEach { logger.d { "current device changed $it" } }
       .flatMapLatest { configRepository.deviceConfig(it.id) }
-      .collect(null) ?: return
+      .state(null) ?: return
 
     var audioSessionIds by remember { mutableStateOf(listOf<Int>()) }
     LaunchedEffect(true) {
-      broadcastsFactory(
+      broadcastManager.broadcasts(
         AudioEffect.ACTION_OPEN_AUDIO_EFFECT_CONTROL_SESSION,
         AudioEffect.ACTION_CLOSE_AUDIO_EFFECT_CONTROL_SESSION
       )

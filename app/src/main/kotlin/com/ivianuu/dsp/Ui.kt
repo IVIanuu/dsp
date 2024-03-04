@@ -43,10 +43,10 @@ import com.ivianuu.injekt.*
       permissionManager: PermissionManager,
       pref: DataStore<DspPrefs>
     ) = Ui<HomeScreen> {
-      val currentAudioDevice = audioDeviceRepository.currentAudioDevice.collect(AudioDevice.Phone)
+      val currentAudioDevice = audioDeviceRepository.currentAudioDevice.state(AudioDevice.Phone)
 
       val currentConfig = configRepository.deviceConfig(currentAudioDevice.id)
-        .collect(DspConfig.Default, currentAudioDevice)
+        .state(DspConfig.Default, currentAudioDevice)
 
       suspend fun updateConfig(block: DspConfig.() -> DspConfig) {
         val config = currentConfig.block().copy()
@@ -56,9 +56,9 @@ import com.ivianuu.injekt.*
       }
 
       val allConfigs = configRepository.configs
-        .collectResource()
+        .resourceState()
         .map { it.filterNot { it.id.isUUID } }
-      val configUsages = configRepository.configUsages.collect(emptyMap())
+      val configUsages = configRepository.configUsages.state(emptyMap())
 
       ScreenScaffold(
         topBar = {
@@ -84,7 +84,7 @@ import com.ivianuu.injekt.*
         LazyVerticalGrid(columns = GridCells.Fixed(2)) {
           item(span = { GridItemSpan(maxLineSpan) }) {
             SwitchListItem(
-              value = pref.data.collect(null)?.dspEnabled == true,
+              value = pref.data.state(null)?.dspEnabled == true,
               onValueChange = scopedAction { value ->
                 if (!value || permissionManager.requestPermissions(dspPermissions))
                   pref.updateData { copy(dspEnabled = value) }

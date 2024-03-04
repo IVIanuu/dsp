@@ -8,6 +8,7 @@
 
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT"/>
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
 
     <application
         android:icon="@mipmap/ic_launcher"
@@ -16,5 +17,13 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Es"
         android:allowBackup="false"
-        tools:ignore="AllowBackup,GoogleAppIndexingWarning" />
+        tools:ignore="AllowBackup,GoogleAppIndexingWarning">
+        <receiver
+            android:name="com.ivianuu.essentials.util.EsBroadcastReceiver"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED"/>
+            </intent-filter>
+        </receiver>
+    </application>
 </manifest>

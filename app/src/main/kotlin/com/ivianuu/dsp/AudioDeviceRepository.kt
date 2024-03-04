@@ -29,15 +29,15 @@ sealed interface AudioDevice {
 @Provide @Scoped<AppScope> class AudioDeviceRepository(
   private val audioManager: @SystemService AudioManager,
   private val appContext: AppContext,
-  private val broadcastsFactory: BroadcastsFactory,
+  private val broadcastManager: BroadcastManager,
   private val bluetoothManager: @SystemService BluetoothManager,
   permissionManager: PermissionManager,
   scope: ScopedCoroutineScope<AppScope>
 ) {
   val currentAudioDevice: Flow<AudioDevice> = moleculeFlow(RecompositionMode.Immediate) {
-    if (!permissionManager.permissionState(dspPermissions).collect(false))
+    if (!permissionManager.permissionState(dspPermissions).state(false))
       AudioDevice.Phone
-    else broadcastsFactory(
+    else broadcastManager.broadcasts(
       BluetoothA2dp.ACTION_CONNECTION_STATE_CHANGED,
       BluetoothA2dp.ACTION_PLAYING_STATE_CHANGED,
       "android.bluetooth.a2dp.profile.action.ACTIVE_DEVICE_CHANGED"
@@ -52,7 +52,7 @@ sealed interface AudioDevice {
             ?.let { AudioDevice.Bluetooth(it.address, it.alias ?: it.name) }
         }
       }
-      .collect(null)
+      .state(null)
       ?: AudioDevice.Phone
   }
 
