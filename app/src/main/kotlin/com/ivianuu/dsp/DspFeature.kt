@@ -7,12 +7,12 @@ package com.ivianuu.dsp
 import android.media.audiofx.*
 import androidx.compose.animation.core.*
 import androidx.compose.runtime.*
-import co.touchlab.kermit.*
 import com.ivianuu.essentials.*
 import com.ivianuu.essentials.app.*
 import com.ivianuu.essentials.compose.*
 import com.ivianuu.essentials.data.*
 import com.ivianuu.essentials.foreground.*
+import com.ivianuu.essentials.logging.*
 import com.ivianuu.essentials.util.*
 import com.ivianuu.injekt.*
 import kotlinx.coroutines.flow.*
