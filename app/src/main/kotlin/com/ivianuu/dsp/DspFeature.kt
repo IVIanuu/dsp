@@ -31,7 +31,7 @@ import java.util.*
     val enabled = pref.data.state(null)?.dspEnabled == true
 
     if (enabled)
-      foregroundManager.Foreground("dsp")
+      foregroundManager.Foreground()
 
     val config = audioDeviceRepository.currentAudioDevice
       .onEach { logger.d { "current device changed $it" } }
