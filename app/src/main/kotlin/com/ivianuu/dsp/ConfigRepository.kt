@@ -92,7 +92,7 @@ import kotlin.time.Duration.Companion.days
   fun configUsed(id: String) {
     scope.launch {
       pref.updateData {
-        val now = clock()
+        val now = clock.now()
         copy(
           configUsages = configUsages.toMutableMap().apply {
             put(id, (this[id] ?: emptyList()) + now)
@@ -104,7 +104,7 @@ import kotlin.time.Duration.Companion.days
 
   private fun Map<String, List<Duration>>.trim(since: Duration): Map<String, List<Duration>> =
     mutableMapOf<String, List<Duration>>().apply {
-      val now = clock()
+      val now = clock.now()
       this@trim.keys.forEach { id ->
         val usages = this@trim[id]?.filter { it > now - since }
         if (usages?.isNotEmpty() == true) put(id, usages)
@@ -124,7 +124,7 @@ import kotlin.time.Duration.Companion.days
   private val usageInterpolator = AccelerateInterpolator(2f)
 
   private fun Map<String, List<Duration>>.mapToUsageScores(): Map<String, Float> {
-    val now = clock()
+    val now = clock.now()
     val firstUsage = (values
       .flatten()
       .minOrNull() ?: Duration.ZERO)
