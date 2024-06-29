@@ -248,10 +248,7 @@ import com.ivianuu.injekt.Provide
   }
 }
 
-@Composable private fun Equalizer(
-  eq: Map<Int, Int>,
-  onBandChange: (Int, Int) -> Unit
-) {
+@Composable private fun Equalizer(eq: Map<Int, Int>, onBandChange: (Int, Int) -> Unit) {
   HorizontalList(
     contentPadding = PaddingValues(start = 16.dp, end = 16.dp),
     horizontalArrangement = Arrangement.spacedBy(8.dp)
